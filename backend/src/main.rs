@@ -77,6 +77,14 @@ async fn main() -> std::io::Result<()> {
                     .route("/{id}/upload", web::post().to(routes::checklists::upload)),
             )
             .service(
+                web::scope("/api/media")
+                    .route("/upload", web::post().to(routes::media::upload))
+                    .route("/patient/{patient_id}", web::get().to(routes::media::list_by_patient))
+                    .route("/{id}/file", web::get().to(routes::media::serve_file))
+                    .route("/{id}/thumb", web::get().to(routes::media::serve_thumb))
+                    .route("/{id}", web::delete().to(routes::media::delete)),
+            )
+            .service(
                 web::scope("/api/iol")
                     .route("/calculate", web::post().to(routes::iol::calculate))
                     .route("/patient/{patient_id}", web::get().to(routes::iol::list_by_patient)),

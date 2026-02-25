@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import api from '../../api/client'
 import StatusBadge from '../../components/StatusBadge'
 import ChecklistItemRow from '../../components/ChecklistItemRow'
+import MediaGallery from '../../components/MediaGallery'
 import type { PatientWithChecklist } from '../../types/index'
 
 function PatientCard() {
@@ -86,6 +87,10 @@ function PatientCard() {
           ))}
         </ul>
       )}
+
+      <div className="mt-6">
+        <MediaGallery patientId={patient.id} />
+      </div>
     </div>
   )
 }
