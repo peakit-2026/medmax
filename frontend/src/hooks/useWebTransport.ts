@@ -122,23 +122,47 @@ export function useWebTransport(roomId: string) {
       const videoTrack = stream.getVideoTracks()[0]
       const videoEncoder = videoEncoderRef.current
       if (videoTrack && videoEncoder) {
-        const processor = new MediaStreamTrackProcessor({ track: videoTrack })
-        const reader = processor.readable.getReader()
-        ;(async () => {
-          while (!abort.signal.aborted) {
-            const { value: frame, done } = await reader.read()
-            if (done || !frame) break
-            if (videoEncoder.state !== 'configured') {
+        if (typeof MediaStreamTrackProcessor !== 'undefined') {
+          const processor = new MediaStreamTrackProcessor({ track: videoTrack })
+          const reader = processor.readable.getReader()
+          ;(async () => {
+            while (!abort.signal.aborted) {
+              const { value: frame, done } = await reader.read()
+              if (done || !frame) break
+              if (videoEncoder.state !== 'configured') {
+                frame.close()
+                continue
+              }
+              frameCountRef.current++
+              const keyFrame = frameCountRef.current % 60 === 0
+              videoEncoder.encode(frame, { keyFrame })
               frame.close()
-              continue
             }
+            reader.releaseLock()
+          })()
+        } else {
+          const canvas = document.createElement('canvas')
+          canvas.width = 640
+          canvas.height = 480
+          const ctx = canvas.getContext('2d')!
+          const video = document.createElement('video')
+          video.srcObject = new MediaStream([videoTrack])
+          video.muted = true
+          video.play()
+          const interval = setInterval(() => {
+            if (abort.signal.aborted || videoEncoder.state !== 'configured') {
+              if (abort.signal.aborted) clearInterval(interval)
+              return
+            }
+            ctx.drawImage(video, 0, 0, 640, 480)
+            const frame = new VideoFrame(canvas, { timestamp: performance.now() * 1000 })
             frameCountRef.current++
             const keyFrame = frameCountRef.current % 60 === 0
             videoEncoder.encode(frame, { keyFrame })
             frame.close()
-          }
-          reader.releaseLock()
-        })()
+          }, 33)
+          abort.signal.addEventListener('abort', () => clearInterval(interval))
+        }
       }
 
       const dgramWriter = transport.datagrams.writable.getWriter()
@@ -163,21 +187,48 @@ export function useWebTransport(roomId: string) {
 
       const audioTrack = stream.getAudioTracks()[0]
       if (audioTrack) {
-        const processor = new MediaStreamTrackProcessor({ track: audioTrack })
-        const reader = processor.readable.getReader()
-        ;(async () => {
-          while (!abort.signal.aborted) {
-            const { value: frame, done } = await reader.read()
-            if (done || !frame) break
-            if (audioEncoder.state !== 'configured') {
+        if (typeof MediaStreamTrackProcessor !== 'undefined') {
+          const processor = new MediaStreamTrackProcessor({ track: audioTrack })
+          const reader = processor.readable.getReader()
+          ;(async () => {
+            while (!abort.signal.aborted) {
+              const { value: frame, done } = await reader.read()
+              if (done || !frame) break
+              if (audioEncoder.state !== 'configured') {
+                frame.close()
+                continue
+              }
+              audioEncoder.encode(frame)
               frame.close()
-              continue
             }
-            audioEncoder.encode(frame)
-            frame.close()
+            reader.releaseLock()
+          })()
+        } else {
+          const audioCtx2 = new AudioContext({ sampleRate: 48000 })
+          const source = audioCtx2.createMediaStreamSource(new MediaStream([audioTrack]))
+          const scriptNode = audioCtx2.createScriptProcessor(4096, 1, 1)
+          source.connect(scriptNode)
+          scriptNode.connect(audioCtx2.destination)
+          scriptNode.onaudioprocess = (e) => {
+            if (abort.signal.aborted || audioEncoder.state !== 'configured') return
+            const input = e.inputBuffer.getChannelData(0)
+            const audioData = new AudioData({
+              format: 'f32',
+              sampleRate: 48000,
+              numberOfFrames: input.length,
+              numberOfChannels: 1,
+              timestamp: performance.now() * 1000,
+              data: input,
+            })
+            audioEncoder.encode(audioData)
+            audioData.close()
           }
-          reader.releaseLock()
-        })()
+          abort.signal.addEventListener('abort', () => {
+            scriptNode.disconnect()
+            source.disconnect()
+            audioCtx2.close()
+          })
+        }
       }
 
       const audioCtx = new AudioContext({ sampleRate: 48000 })
