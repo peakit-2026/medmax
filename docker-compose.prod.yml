@@ -30,6 +30,7 @@ services:
       S3_BUCKET: ${S3_BUCKET:-oculus-feldsher}
       S3_ENDPOINT: ${S3_ENDPOINT:-https://s3.timeweb.cloud}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      SFU_URL: ${SFU_URL:-https://sfu.yarokb.ru:4433}
       RUST_LOG: info
     networks:
       - internal
