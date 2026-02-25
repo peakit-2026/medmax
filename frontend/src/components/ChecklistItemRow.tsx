@@ -45,7 +45,7 @@ function ChecklistItemRow({ item, patientId, onUpdate }: Props) {
   }
 
   return (
-    <li className="flex items-center gap-2 border p-2 rounded">
+    <li className="flex items-center gap-2 border border-gray-200 px-3 py-2 rounded">
       <input
         type="checkbox"
         checked={item.is_completed}

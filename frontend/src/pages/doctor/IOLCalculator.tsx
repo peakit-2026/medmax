@@ -59,151 +59,153 @@ function IOLCalculator() {
 
   return (
     <div>
-      <Link to={`/doctor/patient/${id}`} className="text-blue-600 mb-4 inline-block">
+      <Link to={`/doctor/patient/${id}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block text-sm">
         &larr; К карте пациента
       </Link>
 
-      <h1 className="text-xl font-semibold mb-4">Калькулятор ИОЛ</h1>
+      <h1 className="text-2xl font-bold mb-6">Калькулятор ИОЛ</h1>
 
-      <form onSubmit={handleSubmit} className="max-w-md flex flex-col gap-3 mb-6">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600">Глаз</span>
-          <select
-            value={eye}
-            onChange={(e) => setEye(e.target.value)}
-            className="border rounded p-2"
+      <div className="bg-white rounded-lg shadow p-6 mb-6 max-w-md">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">Глаз</span>
+            <select
+              value={eye}
+              onChange={(e) => setEye(e.target.value)}
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            >
+              <option value="right">Правый (OD)</option>
+              <option value="left">Левый (OS)</option>
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">K1 (дптр)</span>
+            <input
+              type="number"
+              step="0.01"
+              value={k1}
+              onChange={(e) => setK1(e.target.value)}
+              required
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">K2 (дптр)</span>
+            <input
+              type="number"
+              step="0.01"
+              value={k2}
+              onChange={(e) => setK2(e.target.value)}
+              required
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">Аксиальная длина (мм)</span>
+            <input
+              type="number"
+              step="0.01"
+              value={axialLength}
+              onChange={(e) => setAxialLength(e.target.value)}
+              required
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">Глубина передней камеры (мм)</span>
+            <input
+              type="number"
+              step="0.01"
+              value={acd}
+              onChange={(e) => setAcd(e.target.value)}
+              required
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">Целевая рефракция (дптр)</span>
+            <input
+              type="number"
+              step="0.25"
+              value={targetRefraction}
+              onChange={(e) => setTargetRefraction(e.target.value)}
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+          </label>
+
+          <div className="flex gap-4">
+            <label className="flex items-center gap-1">
+              <input
+                type="radio"
+                name="formula"
+                value="srk_t"
+                checked={formula === 'srk_t'}
+                onChange={() => setFormula('srk_t')}
+              />
+              <span className="text-sm">SRK/T</span>
+            </label>
+            <label className="flex items-center gap-1">
+              <input
+                type="radio"
+                name="formula"
+                value="haigis"
+                checked={formula === 'haigis'}
+                onChange={() => setFormula('haigis')}
+              />
+              <span className="text-sm">Haigis</span>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            <option value="right">Правый (OD)</option>
-            <option value="left">Левый (OS)</option>
-          </select>
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600">K1 (дптр)</span>
-          <input
-            type="number"
-            step="0.01"
-            value={k1}
-            onChange={(e) => setK1(e.target.value)}
-            required
-            className="border rounded p-2"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600">K2 (дптр)</span>
-          <input
-            type="number"
-            step="0.01"
-            value={k2}
-            onChange={(e) => setK2(e.target.value)}
-            required
-            className="border rounded p-2"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600">Аксиальная длина (мм)</span>
-          <input
-            type="number"
-            step="0.01"
-            value={axialLength}
-            onChange={(e) => setAxialLength(e.target.value)}
-            required
-            className="border rounded p-2"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600">Глубина передней камеры (мм)</span>
-          <input
-            type="number"
-            step="0.01"
-            value={acd}
-            onChange={(e) => setAcd(e.target.value)}
-            required
-            className="border rounded p-2"
-          />
-        </label>
-
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-gray-600">Целевая рефракция (дптр)</span>
-          <input
-            type="number"
-            step="0.25"
-            value={targetRefraction}
-            onChange={(e) => setTargetRefraction(e.target.value)}
-            className="border rounded p-2"
-          />
-        </label>
-
-        <div className="flex gap-4">
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              name="formula"
-              value="srk_t"
-              checked={formula === 'srk_t'}
-              onChange={() => setFormula('srk_t')}
-            />
-            <span>SRK/T</span>
-          </label>
-          <label className="flex items-center gap-1">
-            <input
-              type="radio"
-              name="formula"
-              value="haigis"
-              checked={formula === 'haigis'}
-              onChange={() => setFormula('haigis')}
-            />
-            <span>Haigis</span>
-          </label>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white rounded p-2 disabled:opacity-50"
-        >
-          {loading ? 'Расчёт...' : 'Рассчитать'}
-        </button>
-      </form>
+            {loading ? 'Расчёт...' : 'Рассчитать'}
+          </button>
+        </form>
+      </div>
 
       {result !== null && (
-        <div className="bg-green-50 border border-green-300 rounded p-4 mb-6 max-w-md">
-          <span className="text-lg font-semibold">
+        <div className="bg-green-50 border border-green-300 rounded-lg p-4 mb-6 max-w-md">
+          <span className="text-lg font-semibold text-green-800">
             Рекомендуемая ИОЛ: {result.toFixed(1)} D
           </span>
         </div>
       )}
 
       {history.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold mb-2">История расчётов</h2>
-          <table className="w-full max-w-2xl text-sm border">
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">История расчётов</h2>
+          <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="p-2 text-left border">Дата</th>
-                <th className="p-2 text-left border">Глаз</th>
-                <th className="p-2 text-left border">Формула</th>
-                <th className="p-2 text-left border">K1/K2</th>
-                <th className="p-2 text-left border">AL</th>
-                <th className="p-2 text-left border">ИОЛ</th>
+              <tr className="border-b text-left text-gray-500">
+                <th className="px-4 py-3">Дата</th>
+                <th className="px-4 py-3">Глаз</th>
+                <th className="px-4 py-3">Формула</th>
+                <th className="px-4 py-3">K1/K2</th>
+                <th className="px-4 py-3">AL</th>
+                <th className="px-4 py-3">ИОЛ</th>
               </tr>
             </thead>
             <tbody>
               {history.map((calc) => (
-                <tr key={calc.id}>
-                  <td className="p-2 border">
+                <tr key={calc.id} className="border-b">
+                  <td className="px-4 py-3">
                     {new Date(calc.created_at).toLocaleDateString('ru-RU')}
                   </td>
-                  <td className="p-2 border">{calc.eye === 'right' ? 'OD' : 'OS'}</td>
-                  <td className="p-2 border">{calc.formula === 'srk_t' ? 'SRK/T' : 'Haigis'}</td>
-                  <td className="p-2 border">
+                  <td className="px-4 py-3">{calc.eye === 'right' ? 'OD' : 'OS'}</td>
+                  <td className="px-4 py-3">{calc.formula === 'srk_t' ? 'SRK/T' : 'Haigis'}</td>
+                  <td className="px-4 py-3">
                     {calc.k1}/{calc.k2}
                   </td>
-                  <td className="p-2 border">{calc.axial_length}</td>
-                  <td className="p-2 border font-semibold">{calc.recommended_iol.toFixed(1)} D</td>
+                  <td className="px-4 py-3">{calc.axial_length}</td>
+                  <td className="px-4 py-3 font-semibold">{calc.recommended_iol.toFixed(1)} D</td>
                 </tr>
               ))}
             </tbody>

@@ -65,7 +65,7 @@ function PatientStatus() {
           <p className="text-xl text-red-600 mb-4">
             Пациент не найден. Проверьте код доступа.
           </p>
-          <Link to="/patient" className="text-blue-600 text-lg underline">
+          <Link to="/patient" className="text-blue-600 hover:text-blue-700 text-lg underline">
             Попробовать снова
           </Link>
         </div>
@@ -108,11 +108,11 @@ function PatientStatus() {
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8">
       <div className="max-w-lg mx-auto">
-        <Link to="/patient" className="text-blue-600 mb-6 inline-block">
+        <Link to="/patient" className="text-blue-600 hover:text-blue-700 mb-6 inline-block text-sm">
           &larr; Назад
         </Link>
 
-        <h1 className="text-2xl font-semibold mb-6">{patient.full_name}</h1>
+        <h1 className="text-2xl font-bold mb-6">{patient.full_name}</h1>
 
         {patient.operation_date && (
           <div className="bg-green-50 border border-green-300 rounded-lg p-4 mb-6">

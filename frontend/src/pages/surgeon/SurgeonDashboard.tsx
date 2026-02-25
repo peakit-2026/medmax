@@ -30,34 +30,34 @@ function SurgeonDashboard() {
   const redCount = patients.filter((p) => p.status === 'red').length
   const greenCount = patients.filter((p) => p.status === 'green').length
 
-  if (loading) return <div>Загрузка...</div>
+  if (loading) return <div className="text-gray-500">Загрузка...</div>
 
   return (
     <div>
-      <h1 className="text-xl font-semibold mb-4">Кабинет хирурга</h1>
+      <h1 className="text-2xl font-bold mb-6">Кабинет хирурга</h1>
 
-      <div className="flex gap-2 mb-4 flex-wrap">
+      <div className="flex gap-2 mb-6 flex-wrap">
         <button
           onClick={() => setFilter('all')}
-          className={`px-3 py-1 rounded border ${filter === 'all' ? 'bg-gray-800 text-white' : ''}`}
+          className={`px-3 py-2 rounded text-sm font-medium ${filter === 'all' ? 'bg-gray-800 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`}
         >
           Все ({patients.length})
         </button>
         <button
           onClick={() => setFilter('yellow')}
-          className={`px-3 py-1 rounded border ${filter === 'yellow' ? 'bg-amber-600 text-white' : 'bg-amber-50'}`}
+          className={`px-3 py-2 rounded text-sm font-medium ${filter === 'yellow' ? 'bg-amber-600 text-white' : 'bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100'}`}
         >
           Ожидают проверки ({yellowCount})
         </button>
         <button
           onClick={() => setFilter('red')}
-          className={`px-3 py-1 rounded border ${filter === 'red' ? 'bg-red-600 text-white' : 'bg-red-50'}`}
+          className={`px-3 py-2 rounded text-sm font-medium ${filter === 'red' ? 'bg-red-600 text-white' : 'bg-red-50 border border-red-200 text-red-800 hover:bg-red-100'}`}
         >
           Требуют доработки ({redCount})
         </button>
         <button
           onClick={() => setFilter('green')}
-          className={`px-3 py-1 rounded border ${filter === 'green' ? 'bg-green-600 text-white' : 'bg-green-50'}`}
+          className={`px-3 py-2 rounded text-sm font-medium ${filter === 'green' ? 'bg-green-600 text-white' : 'bg-green-50 border border-green-200 text-green-800 hover:bg-green-100'}`}
         >
           Готовы ({greenCount})
         </button>
@@ -68,38 +68,40 @@ function SurgeonDashboard() {
         placeholder="Поиск по ФИО..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="border p-2 rounded w-full mb-4"
+        className="border border-gray-300 px-3 py-2 rounded w-full mb-6"
       />
 
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="border-b text-left">
-            <th className="p-2">ФИО</th>
-            <th className="p-2">Диагноз</th>
-            <th className="p-2">Тип операции</th>
-            <th className="p-2">Статус</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map((p) => (
-            <tr
-              key={p.id}
-              onClick={() => navigate(`/surgeon/patient/${p.id}`)}
-              className="border-b cursor-pointer hover:bg-gray-50"
-            >
-              <td className="p-2">{p.full_name}</td>
-              <td className="p-2">{p.diagnosis_text}</td>
-              <td className="p-2">{p.operation_type}</td>
-              <td className="p-2">
-                <StatusBadge status={p.status} />
-              </td>
+      <div className="bg-white rounded-lg shadow">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b text-left text-sm text-gray-500">
+              <th className="px-4 py-3">ФИО</th>
+              <th className="px-4 py-3">Диагноз</th>
+              <th className="px-4 py-3">Тип операции</th>
+              <th className="px-4 py-3">Статус</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.map((p) => (
+              <tr
+                key={p.id}
+                onClick={() => navigate(`/surgeon/patient/${p.id}`)}
+                className="border-b cursor-pointer hover:bg-gray-50"
+              >
+                <td className="px-4 py-3">{p.full_name}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{p.diagnosis_text}</td>
+                <td className="px-4 py-3 text-sm">{p.operation_type}</td>
+                <td className="px-4 py-3">
+                  <StatusBadge status={p.status} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {filtered.length === 0 && (
-        <p className="text-gray-500 mt-4 text-center">Нет пациентов</p>
+        <p className="text-gray-500 mt-6 text-center">Нет пациентов</p>
       )}
     </div>
   )

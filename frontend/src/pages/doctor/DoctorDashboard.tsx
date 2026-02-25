@@ -25,28 +25,28 @@ function DoctorDashboard() {
   const yellowCount = patients.filter((p) => p.status === 'yellow').length
   const greenCount = patients.filter((p) => p.status === 'green').length
 
-  if (loading) return <div>Загрузка...</div>
+  if (loading) return <div className="text-gray-500">Загрузка...</div>
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">Пациенты</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Пациенты</h1>
         <button
           onClick={() => navigate('/doctor/new')}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
           Добавить пациента
         </button>
       </div>
 
-      <div className="flex gap-4 mb-4">
-        <div className="bg-red-100 text-red-800 px-3 py-2 rounded">
+      <div className="flex gap-3 mb-6">
+        <div className="bg-red-100 text-red-800 px-3 py-2 rounded text-sm font-medium">
           Консультация: {redCount}
         </div>
-        <div className="bg-amber-100 text-amber-800 px-3 py-2 rounded">
+        <div className="bg-amber-100 text-amber-800 px-3 py-2 rounded text-sm font-medium">
           Подготовка: {yellowCount}
         </div>
-        <div className="bg-green-100 text-green-800 px-3 py-2 rounded">
+        <div className="bg-green-100 text-green-800 px-3 py-2 rounded text-sm font-medium">
           Готов: {greenCount}
         </div>
       </div>
@@ -56,40 +56,42 @@ function DoctorDashboard() {
         placeholder="Поиск по ФИО..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="border p-2 rounded w-full mb-4"
+        className="border border-gray-300 px-3 py-2 rounded w-full mb-6"
       />
 
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="border-b text-left">
-            <th className="p-2">ФИО</th>
-            <th className="p-2">Диагноз</th>
-            <th className="p-2">Тип операции</th>
-            <th className="p-2">Статус</th>
-            <th className="p-2">Код доступа</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map((p) => (
-            <tr
-              key={p.id}
-              onClick={() => navigate(`/doctor/patient/${p.id}`)}
-              className="border-b cursor-pointer hover:bg-gray-50"
-            >
-              <td className="p-2">{p.full_name}</td>
-              <td className="p-2">{p.diagnosis_text}</td>
-              <td className="p-2">{p.operation_type}</td>
-              <td className="p-2">
-                <StatusBadge status={p.status} />
-              </td>
-              <td className="p-2 font-mono">{p.access_code}</td>
+      <div className="bg-white rounded-lg shadow">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b text-left text-sm text-gray-500">
+              <th className="px-4 py-3">ФИО</th>
+              <th className="px-4 py-3">Диагноз</th>
+              <th className="px-4 py-3">Тип операции</th>
+              <th className="px-4 py-3">Статус</th>
+              <th className="px-4 py-3">Код доступа</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.map((p) => (
+              <tr
+                key={p.id}
+                onClick={() => navigate(`/doctor/patient/${p.id}`)}
+                className="border-b cursor-pointer hover:bg-gray-50"
+              >
+                <td className="px-4 py-3">{p.full_name}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{p.diagnosis_text}</td>
+                <td className="px-4 py-3 text-sm">{p.operation_type}</td>
+                <td className="px-4 py-3">
+                  <StatusBadge status={p.status} />
+                </td>
+                <td className="px-4 py-3 font-mono text-sm">{p.access_code}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {filtered.length === 0 && (
-        <p className="text-gray-500 mt-4 text-center">Нет пациентов</p>
+        <p className="text-gray-500 mt-6 text-center">Нет пациентов</p>
       )}
     </div>
   )

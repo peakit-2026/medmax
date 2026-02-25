@@ -29,34 +29,38 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-80">
-        <h1 className="text-2xl font-semibold text-center">Окулус-Фельдшер</h1>
-        {error && <p className="text-red-600">{error}</p>}
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="border p-2 rounded"
-        />
-        <input
-          type="password"
-          placeholder="Пароль"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="border p-2 rounded"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white p-2 rounded disabled:opacity-50"
-        >
-          {loading ? 'Вход...' : 'Войти'}
-        </button>
-      </form>
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="w-full max-w-sm">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
+          <h1 className="text-2xl font-bold text-center mb-6">Окулус-Фельдшер</h1>
+          {error && <p className="text-red-600 mb-4">{error}</p>}
+          <div className="flex flex-col gap-4">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+            <input
+              type="password"
+              placeholder="Пароль"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Вход...' : 'Войти'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

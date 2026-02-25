@@ -7,18 +7,20 @@ function Layout() {
   const logout = useAuthStore((s) => s.logout)
 
   return (
-    <div className="min-h-screen">
-      <header className="flex items-center justify-between p-4 border-b">
-        <span className="text-lg font-semibold">Окулус-Фельдшер</span>
-        <div className="flex items-center gap-4">
-          <span>{user?.full_name}</span>
-          <span className="text-sm bg-gray-200 px-2 py-1 rounded">{user?.role}</span>
-          <button onClick={logout} className="text-red-600">
-            Выйти
-          </button>
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b shadow-sm">
+        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
+          <span className="text-lg font-bold text-gray-900">Окулус-Фельдшер</span>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-gray-700">{user?.full_name}</span>
+            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{user?.role === 'doctor' ? 'Врач' : 'Хирург'}</span>
+            <button onClick={logout} className="text-sm text-red-600 hover:text-red-700">
+              Выйти
+            </button>
+          </div>
         </div>
       </header>
-      <main className="p-4">
+      <main className="max-w-5xl mx-auto p-6">
         <Outlet />
       </main>
       <OfflineIndicator />

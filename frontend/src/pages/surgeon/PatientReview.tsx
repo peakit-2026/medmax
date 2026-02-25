@@ -98,23 +98,23 @@ function PatientReview() {
       .finally(() => setSubmitting(false))
   }
 
-  if (loading) return <div>Загрузка...</div>
-  if (!patient) return <div>Пациент не найден</div>
+  if (loading) return <div className="text-gray-500">Загрузка...</div>
+  if (!patient) return <div className="text-red-600">Пациент не найден</div>
 
   const completedCount = patient.checklist.filter((c) => c.is_completed).length
   const totalCount = patient.checklist.length
 
   return (
     <div>
-      <Link to="/surgeon" className="text-blue-600 mb-4 inline-block">
+      <Link to="/surgeon" className="text-blue-600 hover:text-blue-700 mb-4 inline-block text-sm">
         &larr; К списку пациентов
       </Link>
 
-      <div className="flex items-center gap-4 mb-4">
-        <h1 className="text-xl font-semibold">{patient.full_name}</h1>
+      <div className="flex items-center gap-3 mb-6">
+        <h1 className="text-2xl font-bold">{patient.full_name}</h1>
         <button
           onClick={() => setShowVideo(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
         >
           Видеоконсультация
         </button>
@@ -122,90 +122,94 @@ function PatientReview() {
 
       {showVideo && <VideoCall roomId={patient.id} onClose={() => setShowVideo(false)} />}
 
-      <div className="grid grid-cols-2 gap-2 mb-6 max-w-lg">
-        <span className="text-gray-600">Дата рождения:</span>
-        <span>{patient.birth_date}</span>
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 max-w-lg">
+          <span className="text-gray-500 text-sm">Дата рождения:</span>
+          <span>{patient.birth_date}</span>
 
-        <span className="text-gray-600">СНИЛС:</span>
-        <span>{patient.snils ?? '—'}</span>
+          <span className="text-gray-500 text-sm">СНИЛС:</span>
+          <span>{patient.snils ?? '—'}</span>
 
-        <span className="text-gray-600">Полис ОМС:</span>
-        <span>{patient.insurance_policy ?? '—'}</span>
+          <span className="text-gray-500 text-sm">Полис ОМС:</span>
+          <span>{patient.insurance_policy ?? '—'}</span>
 
-        <span className="text-gray-600">Код МКБ-10:</span>
-        <span>{patient.diagnosis_code}</span>
+          <span className="text-gray-500 text-sm">Код МКБ-10:</span>
+          <span>{patient.diagnosis_code}</span>
 
-        <span className="text-gray-600">Диагноз:</span>
-        <span>{patient.diagnosis_text}</span>
+          <span className="text-gray-500 text-sm">Диагноз:</span>
+          <span>{patient.diagnosis_text}</span>
 
-        <span className="text-gray-600">Тип операции:</span>
-        <span>{patient.operation_type}</span>
+          <span className="text-gray-500 text-sm">Тип операции:</span>
+          <span>{patient.operation_type}</span>
 
-        <span className="text-gray-600">Статус:</span>
-        <span>
-          <StatusBadge status={patient.status} />
-        </span>
+          <span className="text-gray-500 text-sm">Статус:</span>
+          <span>
+            <StatusBadge status={patient.status} />
+          </span>
 
-        <span className="text-gray-600">Дата операции:</span>
-        <span>{patient.operation_date ?? '—'}</span>
+          <span className="text-gray-500 text-sm">Дата операции:</span>
+          <span>{patient.operation_date ?? '—'}</span>
 
-        {patient.notes && (
-          <>
-            <span className="text-gray-600">Примечания:</span>
-            <span>{patient.notes}</span>
-          </>
+          {patient.notes && (
+            <>
+              <span className="text-gray-500 text-sm">Примечания:</span>
+              <span>{patient.notes}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 className="text-lg font-semibold mb-4">
+          Чек-лист ({completedCount}/{totalCount})
+        </h2>
+        {totalCount === 0 ? (
+          <p className="text-gray-500">Чек-лист пуст</p>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {patient.checklist.map((item) => (
+              <li key={item.id} className="flex items-center gap-2 py-1">
+                <span className={item.is_completed ? 'text-green-600' : 'text-gray-400'}>
+                  {item.is_completed ? '[x]' : '[ ]'}
+                </span>
+                <span className={item.is_completed ? 'text-gray-500' : ''}>{item.title}</span>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
-      <h2 className="text-lg font-semibold mb-2">
-        Чек-лист ({completedCount}/{totalCount})
-      </h2>
-      {totalCount === 0 ? (
-        <p className="text-gray-500 mb-4">Чек-лист пуст</p>
-      ) : (
-        <ul className="mb-4 flex flex-col gap-1">
-          {patient.checklist.map((item) => (
-            <li key={item.id} className="flex items-center gap-2">
-              <span className={item.is_completed ? 'text-green-600' : 'text-gray-400'}>
-                {item.is_completed ? '[x]' : '[ ]'}
-              </span>
-              <span>{item.title}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div className="mb-6">
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
         <MediaGallery patientId={patient.id} />
       </div>
 
       {iolCalcs.length > 0 && (
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-2">Расчёты ИОЛ</h2>
-          <table className="w-full max-w-2xl text-sm border">
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Расчёты ИОЛ</h2>
+          <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="bg-gray-100">
-                <th className="p-2 text-left border">Дата</th>
-                <th className="p-2 text-left border">Глаз</th>
-                <th className="p-2 text-left border">Формула</th>
-                <th className="p-2 text-left border">K1/K2</th>
-                <th className="p-2 text-left border">AL</th>
-                <th className="p-2 text-left border">ИОЛ</th>
+              <tr className="border-b text-left text-gray-500">
+                <th className="px-4 py-3">Дата</th>
+                <th className="px-4 py-3">Глаз</th>
+                <th className="px-4 py-3">Формула</th>
+                <th className="px-4 py-3">K1/K2</th>
+                <th className="px-4 py-3">AL</th>
+                <th className="px-4 py-3">ИОЛ</th>
               </tr>
             </thead>
             <tbody>
               {iolCalcs.map((calc) => (
-                <tr key={calc.id}>
-                  <td className="p-2 border">
+                <tr key={calc.id} className="border-b">
+                  <td className="px-4 py-3">
                     {new Date(calc.created_at).toLocaleDateString('ru-RU')}
                   </td>
-                  <td className="p-2 border">{calc.eye === 'right' ? 'OD' : 'OS'}</td>
-                  <td className="p-2 border">{calc.formula === 'srk_t' ? 'SRK/T' : 'Haigis'}</td>
-                  <td className="p-2 border">
+                  <td className="px-4 py-3">{calc.eye === 'right' ? 'OD' : 'OS'}</td>
+                  <td className="px-4 py-3">{calc.formula === 'srk_t' ? 'SRK/T' : 'Haigis'}</td>
+                  <td className="px-4 py-3">
                     {calc.k1}/{calc.k2}
                   </td>
-                  <td className="p-2 border">{calc.axial_length}</td>
-                  <td className="p-2 border font-semibold">{calc.recommended_iol.toFixed(1)} D</td>
+                  <td className="px-4 py-3">{calc.axial_length}</td>
+                  <td className="px-4 py-3 font-semibold">{calc.recommended_iol.toFixed(1)} D</td>
                 </tr>
               ))}
             </tbody>
@@ -213,14 +217,14 @@ function PatientReview() {
         </div>
       )}
 
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">Комментарии</h2>
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 className="text-lg font-semibold mb-4">Комментарии</h2>
         {comments.length === 0 ? (
-          <p className="text-gray-500 text-sm mb-2">Нет комментариев</p>
+          <p className="text-gray-500 text-sm mb-4">Нет комментариев</p>
         ) : (
-          <ul className="flex flex-col gap-2 mb-3">
+          <ul className="flex flex-col gap-2 mb-4">
             {comments.map((c) => (
-              <li key={c.id} className="border rounded p-2">
+              <li key={c.id} className="border border-gray-200 rounded p-3">
                 <p>{c.content}</p>
                 <p className="text-xs text-gray-400 mt-1">
                   {new Date(c.created_at).toLocaleString('ru-RU')}
@@ -235,9 +239,9 @@ function PatientReview() {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Написать комментарий..."
-            className="border p-2 rounded flex-1"
+            className="border border-gray-300 px-3 py-2 rounded flex-1"
           />
-          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
             Отправить
           </button>
         </form>
@@ -249,7 +253,7 @@ function PatientReview() {
             setShowApproveForm(true)
             setShowRejectForm(false)
           }}
-          className="bg-green-600 text-white px-4 py-2 rounded"
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
         >
           Подтвердить готовность
         </button>
@@ -258,71 +262,75 @@ function PatientReview() {
             setShowRejectForm(true)
             setShowApproveForm(false)
           }}
-          className="bg-red-600 text-white px-4 py-2 rounded"
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
         >
           Вернуть на доработку
         </button>
       </div>
 
       {showApproveForm && (
-        <form onSubmit={handleApprove} className="border rounded p-4 max-w-md mb-4">
-          <h3 className="font-semibold mb-2">Подтверждение готовности</h3>
-          <label className="flex flex-col gap-1 mb-3">
-            <span className="text-sm text-gray-600">Дата операции (необязательно)</span>
-            <input
-              type="date"
-              value={operationDate}
-              onChange={(e) => setOperationDate(e.target.value)}
-              className="border p-2 rounded"
-            />
-          </label>
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-50"
-            >
-              Подтвердить
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowApproveForm(false)}
-              className="border px-4 py-2 rounded"
-            >
-              Отмена
-            </button>
-          </div>
-        </form>
+        <div className="bg-white rounded-lg shadow p-6 mb-6 max-w-md">
+          <form onSubmit={handleApprove}>
+            <h3 className="font-semibold mb-4">Подтверждение готовности</h3>
+            <label className="flex flex-col gap-1 mb-4">
+              <span className="text-sm text-gray-700">Дата операции (необязательно)</span>
+              <input
+                type="date"
+                value={operationDate}
+                onChange={(e) => setOperationDate(e.target.value)}
+                className="border border-gray-300 px-3 py-2 rounded w-full"
+              />
+            </label>
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+              >
+                Подтвердить
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowApproveForm(false)}
+                className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
+              >
+                Отмена
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       {showRejectForm && (
-        <form onSubmit={handleReject} className="border rounded p-4 max-w-md mb-4">
-          <h3 className="font-semibold mb-2">Возврат на доработку</h3>
-          <textarea
-            value={rejectComment}
-            onChange={(e) => setRejectComment(e.target.value)}
-            placeholder="Укажите причину..."
-            required
-            rows={3}
-            className="border p-2 rounded w-full mb-3"
-          />
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50"
-            >
-              Вернуть
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowRejectForm(false)}
-              className="border px-4 py-2 rounded"
-            >
-              Отмена
-            </button>
-          </div>
-        </form>
+        <div className="bg-white rounded-lg shadow p-6 mb-6 max-w-md">
+          <form onSubmit={handleReject}>
+            <h3 className="font-semibold mb-4">Возврат на доработку</h3>
+            <textarea
+              value={rejectComment}
+              onChange={(e) => setRejectComment(e.target.value)}
+              placeholder="Укажите причину..."
+              required
+              rows={3}
+              className="border border-gray-300 px-3 py-2 rounded w-full mb-4"
+            />
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+              >
+                Вернуть
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowRejectForm(false)}
+                className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
+              >
+                Отмена
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   )

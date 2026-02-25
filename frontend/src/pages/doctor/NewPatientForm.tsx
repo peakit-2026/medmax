@@ -48,120 +48,122 @@ function NewPatientForm() {
 
   return (
     <div className="max-w-lg">
-      <h1 className="text-xl font-semibold mb-4">Новый пациент</h1>
+      <h1 className="text-2xl font-bold mb-6">Новый пациент</h1>
 
       {error && <p className="text-red-600 mb-4">{error}</p>}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1">
-          <span>ФИО *</span>
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            required
-            className="border p-2 rounded"
-          />
-        </label>
+      <div className="bg-white rounded-lg shadow p-6">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">ФИО *</span>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+          </label>
 
-        <label className="flex flex-col gap-1">
-          <span>Дата рождения *</span>
-          <input
-            type="date"
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            required
-            className="border p-2 rounded"
-          />
-        </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">Дата рождения *</span>
+            <input
+              type="date"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              required
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+          </label>
 
-        <label className="flex flex-col gap-1">
-          <span>СНИЛС</span>
-          <input
-            type="text"
-            value={snils}
-            onChange={(e) => setSnils(e.target.value)}
-            className="border p-2 rounded"
-          />
-        </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">СНИЛС</span>
+            <input
+              type="text"
+              value={snils}
+              onChange={(e) => setSnils(e.target.value)}
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+          </label>
 
-        <label className="flex flex-col gap-1">
-          <span>Полис ОМС</span>
-          <input
-            type="text"
-            value={insurancePolicy}
-            onChange={(e) => setInsurancePolicy(e.target.value)}
-            className="border p-2 rounded"
-          />
-        </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">Полис ОМС</span>
+            <input
+              type="text"
+              value={insurancePolicy}
+              onChange={(e) => setInsurancePolicy(e.target.value)}
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+          </label>
 
-        <label className="flex flex-col gap-1">
-          <span>Код МКБ-10 *</span>
-          <input
-            type="text"
-            value={diagnosisCode}
-            onChange={(e) => setDiagnosisCode(e.target.value)}
-            required
-            placeholder="H25.1"
-            className="border p-2 rounded"
-          />
-        </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">Код МКБ-10 *</span>
+            <input
+              type="text"
+              value={diagnosisCode}
+              onChange={(e) => setDiagnosisCode(e.target.value)}
+              required
+              placeholder="H25.1"
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+          </label>
 
-        <label className="flex flex-col gap-1">
-          <span>Диагноз *</span>
-          <input
-            type="text"
-            value={diagnosisText}
-            onChange={(e) => setDiagnosisText(e.target.value)}
-            required
-            placeholder="Старческая катаракта"
-            className="border p-2 rounded"
-          />
-        </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">Диагноз *</span>
+            <input
+              type="text"
+              value={diagnosisText}
+              onChange={(e) => setDiagnosisText(e.target.value)}
+              required
+              placeholder="Старческая катаракта"
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+          </label>
 
-        <label className="flex flex-col gap-1">
-          <span>Тип операции *</span>
-          <select
-            value={operationType}
-            onChange={(e) => setOperationType(e.target.value)}
-            required
-            className="border p-2 rounded"
-          >
-            {operationTypes.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">Тип операции *</span>
+            <select
+              value={operationType}
+              onChange={(e) => setOperationType(e.target.value)}
+              required
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            >
+              {operationTypes.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <label className="flex flex-col gap-1">
-          <span>Примечания</span>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            className="border p-2 rounded"
-          />
-        </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm text-gray-700">Примечания</span>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="border border-gray-300 px-3 py-2 rounded w-full"
+            />
+          </label>
 
-        <div className="flex gap-2 mt-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-          >
-            {loading ? 'Сохранение...' : 'Создать'}
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/doctor')}
-            className="border px-4 py-2 rounded"
-          >
-            Отмена
-          </button>
-        </div>
-      </form>
+          <div className="flex gap-3 mt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Сохранение...' : 'Создать'}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/doctor')}
+              className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
+            >
+              Отмена
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
