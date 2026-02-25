@@ -30,6 +30,7 @@ export function useWebTransport(roomId: string) {
   const abortRef = useRef<AbortController | null>(null)
   const audioTimeRef = useRef(0)
   const waitingKeyframeRef = useRef(true)
+  const canvasCtxRef = useRef<CanvasRenderingContext2D | null>(null)
 
   const [state, setState] = useState<WebTransportState>({
     isConnected: false,
@@ -42,13 +43,13 @@ export function useWebTransport(roomId: string) {
     abortRef.current?.abort()
     abortRef.current = null
 
-    videoEncoderRef.current?.close()
+    if (videoEncoderRef.current?.state === 'configured') videoEncoderRef.current.close()
     videoEncoderRef.current = null
-    audioEncoderRef.current?.close()
+    if (audioEncoderRef.current?.state === 'configured') audioEncoderRef.current.close()
     audioEncoderRef.current = null
-    videoDecoderRef.current?.close()
+    if (videoDecoderRef.current?.state === 'configured') videoDecoderRef.current.close()
     videoDecoderRef.current = null
-    audioDecoderRef.current?.close()
+    if (audioDecoderRef.current?.state === 'configured') audioDecoderRef.current.close()
     audioDecoderRef.current = null
 
     audioContextRef.current?.close()
@@ -62,6 +63,7 @@ export function useWebTransport(roomId: string) {
 
     audioTimeRef.current = 0
     waitingKeyframeRef.current = true
+    canvasCtxRef.current = null
 
     setState((s) => ({ ...s, isConnected: false, error: null }))
   }, [])
@@ -122,11 +124,13 @@ export function useWebTransport(roomId: string) {
       if (hasVideo) {
         const videoEncoder = new VideoEncoder({
           output: (chunk) => {
-            const buf = new ArrayBuffer(4 + 1 + chunk.byteLength)
+            const isKey = chunk.type === 'key'
+            const buf = new ArrayBuffer(4 + 1 + 1 + chunk.byteLength)
             const view = new DataView(buf)
-            view.setUint32(0, 1 + chunk.byteLength)
+            view.setUint32(0, 1 + 1 + chunk.byteLength)
             view.setUint8(4, 0x02)
-            const chunkBuf = new Uint8Array(buf, 5)
+            view.setUint8(5, isKey ? 0x01 : 0x00)
+            const chunkBuf = new Uint8Array(buf, 6)
             chunk.copyTo(chunkBuf)
             videoWriter.write(new Uint8Array(buf)).catch(() => {})
           },
@@ -159,6 +163,10 @@ export function useWebTransport(roomId: string) {
                 frame.close()
                 continue
               }
+              if (videoEncoder.encodeQueueSize > 5) {
+                frame.close()
+                continue
+              }
               const keyFrame = frameCountRef.current % 30 === 0
               frameCountRef.current++
               videoEncoder.encode(frame, { keyFrame })
@@ -182,8 +190,8 @@ export function useWebTransport(roomId: string) {
             }
             ctx.drawImage(video, 0, 0, 640, 480)
             const frame = new VideoFrame(canvas, { timestamp: performance.now() * 1000 })
-            frameCountRef.current++
             const keyFrame = frameCountRef.current % 30 === 0
+            frameCountRef.current++
             videoEncoder.encode(frame, { keyFrame })
             frame.close()
           }, 33)
@@ -264,17 +272,20 @@ export function useWebTransport(roomId: string) {
       const videoDecoder = new VideoDecoder({
         output: (frame) => {
           const canvas = remoteCanvasRef.current
-          if (canvas) {
-            canvas.width = frame.displayWidth
-            canvas.height = frame.displayHeight
-            const ctx = canvas.getContext('2d')
-            if (ctx) {
-              ctx.drawImage(frame, 0, 0)
-            }
+          if (!canvas) {
+            frame.close()
+            return
           }
+          if (canvas.width !== frame.displayWidth) canvas.width = frame.displayWidth
+          if (canvas.height !== frame.displayHeight) canvas.height = frame.displayHeight
+          if (!canvasCtxRef.current) {
+            canvasCtxRef.current = canvas.getContext('2d')
+          }
+          canvasCtxRef.current?.drawImage(frame, 0, 0)
           frame.close()
         },
-        error: () => {
+        error: (e) => {
+          console.error('VideoDecoder error:', e)
           waitingKeyframeRef.current = true
         },
       })
@@ -335,6 +346,11 @@ export function useWebTransport(roomId: string) {
 
           while (buffer.length >= 4) {
             const len = new DataView(buffer.buffer, buffer.byteOffset).getUint32(0)
+            if (len === 0 || len > 1_000_000) {
+              buffer = new Uint8Array(0)
+              waitingKeyframeRef.current = true
+              break
+            }
             if (buffer.length < 4 + len) break
 
             const packet = buffer.slice(4, 4 + len)
@@ -346,8 +362,12 @@ export function useWebTransport(roomId: string) {
             const pktType = packet[1 + idLen]
 
             if (pktType === 0x02 && videoDecoder.state === 'configured') {
-              const videoData = packet.slice(1 + idLen + 1)
-              const isKey = detectKeyframe(videoData)
+              const payload = packet.slice(1 + idLen + 1)
+              if (payload.length < 2) continue
+
+              const frameTypeByte = payload[0]
+              const videoData = payload.slice(1)
+              const isKey = frameTypeByte === 0x01
 
               if (waitingKeyframeRef.current) {
                 if (!isKey) continue
@@ -436,20 +456,4 @@ export function useWebTransport(roomId: string) {
     toggleMute,
     toggleCamera,
   }
-}
-
-function detectKeyframe(data: Uint8Array): boolean {
-  if (data.length < 5) return false
-
-  for (let i = 0; i < Math.min(data.length - 4, 200); i++) {
-    if (data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 0 && data[i + 3] === 1) {
-      const nalType = data[i + 4] & 0x1f
-      if (nalType === 5 || nalType === 7 || nalType === 8) return true
-    }
-    if (data[i] === 0 && data[i + 1] === 0 && data[i + 2] === 1 && i + 3 < data.length) {
-      const nalType = data[i + 3] & 0x1f
-      if (nalType === 5 || nalType === 7 || nalType === 8) return true
-    }
-  }
-  return false
 }
