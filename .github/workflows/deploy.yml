@@ -13,34 +13,7 @@ env:
   IMAGE_PREFIX: ${{ github.repository }}
 
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-      sfu: ${{ steps.filter.outputs.sfu }}
-      infra: ${{ steps.filter.outputs.infra }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            backend:
-              - 'backend/**'
-              - 'migrations/**'
-            frontend:
-              - 'frontend/**'
-            sfu:
-              - 'sfu/**'
-            infra:
-              - 'docker-compose.prod.yml'
-              - 'infra/**'
-              - '.github/workflows/**'
-
   build-backend:
-    needs: changes
-    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.infra == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -59,12 +32,10 @@ jobs:
           file: backend/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
 
   build-frontend:
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.infra == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -83,12 +54,10 @@ jobs:
           file: frontend/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
 
   build-sfu:
-    needs: changes
-    if: needs.changes.outputs.sfu == 'true' || needs.changes.outputs.infra == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -107,12 +76,11 @@ jobs:
           file: sfu/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/sfu:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=sfu
+          cache-to: type=gha,scope=sfu,mode=max
 
   deploy:
-    needs: [changes, build-backend, build-frontend, build-sfu]
-    if: always() && !failure() && !cancelled()
+    needs: [build-backend, build-frontend, build-sfu]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -137,21 +105,8 @@ jobs:
 
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            BACKEND_CHANGED=${{ needs.changes.outputs.backend }}
-            FRONTEND_CHANGED=${{ needs.changes.outputs.frontend }}
-            SFU_CHANGED=${{ needs.changes.outputs.sfu }}
-            INFRA_CHANGED=${{ needs.changes.outputs.infra }}
-
-            if [ "$BACKEND_CHANGED" = "true" ] || [ "$INFRA_CHANGED" = "true" ]; then
-              docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend:latest
-            fi
-
-            if [ "$FRONTEND_CHANGED" = "true" ] || [ "$INFRA_CHANGED" = "true" ]; then
-              docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:latest
-            fi
-
-            if [ "$SFU_CHANGED" = "true" ] || [ "$INFRA_CHANGED" = "true" ]; then
-              docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/sfu:latest
-            fi
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend:latest
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:latest
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/sfu:latest
 
             docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --remove-orphans
