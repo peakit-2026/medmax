@@ -10,10 +10,8 @@ import PatientCard from './pages/doctor/PatientCard'
 import IOLCalculator from './pages/doctor/IOLCalculator'
 import SurgeonDashboard from './pages/surgeon/SurgeonDashboard'
 import PatientReview from './pages/surgeon/PatientReview'
-
-function PatientLookup() {
-  return <div>Patient Lookup (coming soon)</div>
-}
+import PatientLookup from './pages/patient/PatientLookup'
+import PatientStatus from './pages/patient/PatientStatus'
 
 function App() {
   const init = useAuthStore((s) => s.init)
@@ -26,7 +24,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/patient/:code" element={<PatientLookup />} />
+        <Route path="/patient" element={<PatientLookup />} />
+        <Route path="/patient/:code" element={<PatientStatus />} />
         <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
           <Route element={<Layout />}>
             <Route path="/doctor" element={<DoctorDashboard />} />
