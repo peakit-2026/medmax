@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
+import OfflineIndicator from './OfflineIndicator'
 
 function Layout() {
   const user = useAuthStore((s) => s.user)
@@ -20,6 +21,7 @@ function Layout() {
       <main className="p-4">
         <Outlet />
       </main>
+      <OfflineIndicator />
     </div>
   )
 }
