@@ -77,7 +77,8 @@ async fn main() -> std::io::Result<()> {
                     .route("", web::post().to(routes::patients::create))
                     .route("/code/{code}", web::get().to(routes::patients::get_by_code))
                     .route("/{id}", web::get().to(routes::patients::get))
-                    .route("/{id}", web::put().to(routes::patients::update)),
+                    .route("/{id}", web::put().to(routes::patients::update))
+                    .route("/{id}/route-sheet", web::get().to(routes::print::route_sheet)),
             )
             .service(
                 web::scope("/api/checklists")

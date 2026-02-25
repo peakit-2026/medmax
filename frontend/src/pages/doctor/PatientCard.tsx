@@ -31,7 +31,17 @@ function PatientCard() {
         &larr; К списку пациентов
       </Link>
 
-      <h1 className="text-xl font-semibold mb-4">{patient.full_name}</h1>
+      <div className="flex items-center gap-4 mb-4">
+        <h1 className="text-xl font-semibold">{patient.full_name}</h1>
+        <a
+          href={`/api/patients/${patient.id}/route-sheet`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-gray-600 text-white px-4 py-2 rounded text-sm"
+        >
+          Скачать маршрутный лист
+        </a>
+      </div>
 
       <div className="grid grid-cols-2 gap-2 mb-6 max-w-lg">
         <span className="text-gray-600">Дата рождения:</span>
