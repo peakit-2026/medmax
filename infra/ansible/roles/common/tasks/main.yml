@@ -1,0 +1,90 @@
+---
+- name: Remove conflicting Docker apt sources
+  shell: grep -rl 'download.docker.com' /etc/apt/sources.list.d/ | xargs -r rm -f
+  changed_when: false
+  failed_when: false
+
+- name: Set timezone to Moscow
+  community.general.timezone:
+    name: Europe/Moscow
+
+- name: Update apt cache
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base packages
+  apt:
+    name:
+      - ufw
+      - fail2ban
+      - curl
+      - htop
+      - unzip
+    state: present
+
+- name: Create swap file (2GB)
+  command: fallocate -l 2G /swapfile
+  args:
+    creates: /swapfile
+
+- name: Set swap permissions
+  file:
+    path: /swapfile
+    mode: "0600"
+
+- name: Format swap
+  command: mkswap /swapfile
+  args:
+    creates: /swapfile
+  changed_when: false
+
+- name: Enable swap
+  command: swapon /swapfile
+  changed_when: false
+  failed_when: false
+
+- name: Add swap to fstab
+  lineinfile:
+    path: /etc/fstab
+    line: "/swapfile none swap sw 0 0"
+    state: present
+
+- name: Configure UFW defaults
+  ufw:
+    direction: incoming
+    policy: deny
+
+- name: Allow SSH
+  ufw:
+    rule: allow
+    port: "22"
+    proto: tcp
+
+- name: Allow HTTP
+  ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+
+- name: Allow HTTPS
+  ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+
+- name: Allow SFU (UDP)
+  ufw:
+    rule: allow
+    port: "4433"
+    proto: udp
+
+- name: Enable UFW
+  ufw:
+    state: enabled
+
+- name: Enable fail2ban
+  systemd:
+    name: fail2ban
+    enabled: true
+    state: started

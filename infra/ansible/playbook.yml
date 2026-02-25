@@ -1,0 +1,11 @@
+---
+- name: Provision yarokb VPS
+  hosts: vps
+  become: true
+  vars:
+    app_dir: /opt/yarokb
+    app_user: deploy
+  roles:
+    - common
+    - docker
+    - app

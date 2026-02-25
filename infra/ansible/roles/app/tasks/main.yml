@@ -1,0 +1,40 @@
+---
+- name: Create app directory
+  file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Create backups directory
+  file:
+    path: "{{ app_dir }}/backups"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0750"
+
+- name: Create infra scripts directory
+  file:
+    path: "{{ app_dir }}/infra/scripts"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_user }}"
+    mode: "0755"
+
+- name: Setup daily backup cron
+  cron:
+    name: "yarokb daily backup"
+    minute: "30"
+    hour: "3"
+    job: "{{ app_dir }}/infra/scripts/backup.sh >> {{ app_dir }}/backups/cron.log 2>&1"
+    user: "{{ app_user }}"
+
+- name: Setup cert copy cron (every 12 hours)
+  cron:
+    name: "yarokb cert copy"
+    minute: "0"
+    hour: "*/12"
+    job: "docker compose -f {{ app_dir }}/docker-compose.prod.yml run --rm cert-copy >> /dev/null 2>&1"
+    user: "{{ app_user }}"

@@ -7,30 +7,105 @@ services:
       POSTGRES_DB: ${DB_NAME:-oculus}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-oculus}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     restart: unless-stopped
 
   backend:
     image: ghcr.io/${GITHUB_REPO}/backend:latest
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgres://${DB_USER:-oculus}:${DB_PASSWORD:-oculus}@db:5432/${DB_NAME:-oculus}
       JWT_SECRET: ${JWT_SECRET}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-ru-central1}
       S3_BUCKET: ${S3_BUCKET:-oculus-feldsher}
+      S3_ENDPOINT: ${S3_ENDPOINT:-https://s3.timeweb.cloud}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       RUST_LOG: info
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   frontend:
     image: ghcr.io/${GITHUB_REPO}/frontend:latest
-    depends_on:
-      - backend
+    volumes:
+      - frontend_dist:/dist
+    entrypoint: ["sh", "-c", "cp -r /usr/share/nginx/html/* /dist/ && echo 'Frontend copied'"]
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2-alpine
     ports:
       - "80:80"
+      - "443:443"
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:-admin@yarokb.ru}
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - frontend_dist:/srv/frontend:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      frontend:
+        condition: service_completed_successfully
+    networks:
+      - internal
+      - external
     restart: unless-stopped
+
+  sfu:
+    image: ghcr.io/${GITHUB_REPO}/sfu:latest
+    ports:
+      - "4433:4433/udp"
+    environment:
+      RUST_LOG: info
+      BIND_ADDR: 0.0.0.0:4433
+      CERT_PATH: /app/certs/cert.pem
+      KEY_PATH: /app/certs/key.pem
+    volumes:
+      - sfu_certs:/app/certs:ro
+    networks:
+      - external
+    restart: unless-stopped
+
+  cert-copy:
+    image: alpine:3.20
+    volumes:
+      - caddy_data:/caddy-data:ro
+      - sfu_certs:/sfu-certs
+      - ./infra/scripts/copy-certs.sh:/copy-certs.sh:ro
+    entrypoint: ["sh", "/copy-certs.sh"]
+    depends_on:
+      caddy:
+        condition: service_started
+    networks: []
+
+networks:
+  internal:
+    driver: bridge
+    internal: true
+  external:
+    driver: bridge
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
+  frontend_dist:
+  sfu_certs:

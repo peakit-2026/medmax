@@ -1,0 +1,24 @@
+{
+	email {$ACME_EMAIL}
+}
+
+yarokb.ru {
+	root * /srv/frontend
+
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+
+	handle /uploads/* {
+		reverse_proxy backend:8080
+	}
+
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+sfu.yarokb.ru {
+	respond "OK" 200
+}
