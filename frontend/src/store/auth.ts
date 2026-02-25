@@ -14,6 +14,7 @@ export interface User {
 interface AuthState {
   user: User | null
   token: string | null
+  loading: boolean
   login: (email: string, password: string) => Promise<User>
   register: (data: { email: string; password: string; full_name: string; role: string; phone?: string; district?: string; organization?: string }) => Promise<void>
   fetchMe: () => Promise<void>
@@ -24,6 +25,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: localStorage.getItem('token'),
+  loading: true,
 
   login: async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password })
@@ -58,5 +60,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ user: null, token: null })
       }
     }
+    set({ loading: false })
   },
 }))

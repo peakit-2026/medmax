@@ -1,12 +1,12 @@
 use actix_multipart::Multipart;
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use aws_sdk_s3::primitives::ByteStream;
 use futures_util::StreamExt;
 use uuid::Uuid;
 
-use crate::middleware::auth::AuthUser;
-use crate::models::media::MediaFile;
 use crate::AppState;
+use crate::middleware::auth::AuthUser;
+use crate::models::media::{CreateMediaParams, MediaFile};
 
 pub async fn upload(
     state: web::Data<AppState>,
@@ -55,9 +55,7 @@ pub async fn upload(
                 }
                 file_data = Some((filename, content_type, bytes));
             }
-            _ => {
-                while let Some(Ok(_)) = field.next().await {}
-            }
+            _ => while let Some(Ok(_)) = field.next().await {},
         }
     }
 
@@ -65,7 +63,7 @@ pub async fn upload(
         Some(id) => id,
         None => {
             return HttpResponse::BadRequest()
-                .json(serde_json::json!({"error": "patient_id is required"}))
+                .json(serde_json::json!({"error": "patient_id is required"}));
         }
     };
 
@@ -73,7 +71,7 @@ pub async fn upload(
         Some(data) => data,
         None => {
             return HttpResponse::BadRequest()
-                .json(serde_json::json!({"error": "file is required"}))
+                .json(serde_json::json!({"error": "file is required"}));
         }
     };
 
@@ -97,49 +95,47 @@ pub async fn upload(
             .json(serde_json::json!({"error": "Failed to upload file to S3"}));
     }
 
-    if content_type.starts_with("image/") {
-        if let Ok(img) = image::load_from_memory(&bytes) {
-            let (w, h) = (img.width(), img.height());
-            let (new_w, new_h) = if w > 400 {
-                (400, (h as f64 * 400.0 / w as f64) as u32)
-            } else {
-                (w, h)
-            };
-            let thumb = image::imageops::resize(
-                &img,
-                new_w,
-                new_h,
-                image::imageops::FilterType::Lanczos3,
-            );
-            let mut thumb_bytes: Vec<u8> = Vec::new();
-            let encoder = image::codecs::jpeg::JpegEncoder::new(&mut thumb_bytes);
-            if image::DynamicImage::ImageRgba8(thumb)
-                .write_with_encoder(encoder)
-                .is_ok()
-            {
-                let thumb_key = format!("media/{}/thumb_{}", patient_id, stored_name);
-                let _ = state
-                    .s3_client
-                    .put_object()
-                    .bucket(&state.s3_bucket)
-                    .key(&thumb_key)
-                    .body(ByteStream::from(thumb_bytes))
-                    .content_type("image/jpeg")
-                    .send()
-                    .await;
-            }
+    if content_type.starts_with("image/")
+        && let Ok(img) = image::load_from_memory(&bytes)
+    {
+        let (w, h) = (img.width(), img.height());
+        let (new_w, new_h) = if w > 400 {
+            (400, (h as f64 * 400.0 / w as f64) as u32)
+        } else {
+            (w, h)
+        };
+        let thumb =
+            image::imageops::resize(&img, new_w, new_h, image::imageops::FilterType::Lanczos3);
+        let mut thumb_bytes: Vec<u8> = Vec::new();
+        let encoder = image::codecs::jpeg::JpegEncoder::new(&mut thumb_bytes);
+        if image::DynamicImage::ImageRgba8(thumb)
+            .write_with_encoder(encoder)
+            .is_ok()
+        {
+            let thumb_key = format!("media/{}/thumb_{}", patient_id, stored_name);
+            let _ = state
+                .s3_client
+                .put_object()
+                .bucket(&state.s3_bucket)
+                .key(&thumb_key)
+                .body(ByteStream::from(thumb_bytes))
+                .content_type("image/jpeg")
+                .send()
+                .await;
         }
     }
 
     match MediaFile::create(
         &state.db,
-        patient_id,
-        checklist_item_id,
-        &filename,
-        &key,
-        &content_type,
-        file_size,
-        auth.user_id,
+        CreateMediaParams {
+            patient_id,
+            checklist_item_id,
+            file_name: &filename,
+            file_path: &key,
+            file_type: &content_type,
+            file_size,
+            uploaded_by: auth.user_id,
+        },
     )
     .await
     {
@@ -162,17 +158,11 @@ pub async fn list_by_patient(
     }
 }
 
-pub async fn serve_file(
-    state: web::Data<AppState>,
-    path: web::Path<Uuid>,
-) -> HttpResponse {
+pub async fn serve_file(state: web::Data<AppState>, path: web::Path<Uuid>) -> HttpResponse {
     let id = path.into_inner();
     let media = match MediaFile::find_by_id(&state.db, id).await {
         Ok(Some(m)) => m,
-        _ => {
-            return HttpResponse::NotFound()
-                .json(serde_json::json!({"error": "File not found"}))
-        }
+        _ => return HttpResponse::NotFound().json(serde_json::json!({"error": "File not found"})),
     };
 
     let result = state
@@ -195,22 +185,17 @@ pub async fn serve_file(
                 .content_type(media.file_type)
                 .body(bytes.to_vec())
         }
-        Err(_) => HttpResponse::NotFound()
-            .json(serde_json::json!({"error": "File not found in storage"})),
+        Err(_) => {
+            HttpResponse::NotFound().json(serde_json::json!({"error": "File not found in storage"}))
+        }
     }
 }
 
-pub async fn serve_thumb(
-    state: web::Data<AppState>,
-    path: web::Path<Uuid>,
-) -> HttpResponse {
+pub async fn serve_thumb(state: web::Data<AppState>, path: web::Path<Uuid>) -> HttpResponse {
     let id = path.into_inner();
     let media = match MediaFile::find_by_id(&state.db, id).await {
         Ok(Some(m)) => m,
-        _ => {
-            return HttpResponse::NotFound()
-                .json(serde_json::json!({"error": "File not found"}))
-        }
+        _ => return HttpResponse::NotFound().json(serde_json::json!({"error": "File not found"})),
     };
 
     let parts: Vec<&str> = media.file_path.rsplitn(2, '/').collect();
@@ -276,10 +261,7 @@ pub async fn delete(
     let id = path.into_inner();
     let media = match MediaFile::find_by_id(&state.db, id).await {
         Ok(Some(m)) => m,
-        _ => {
-            return HttpResponse::NotFound()
-                .json(serde_json::json!({"error": "File not found"}))
-        }
+        _ => return HttpResponse::NotFound().json(serde_json::json!({"error": "File not found"})),
     };
 
     let _ = state

@@ -1,12 +1,12 @@
-use std::future::{ready, Ready};
+use std::future::{Ready, ready};
 
 use actix_web::dev::Payload;
-use actix_web::{web, FromRequest, HttpRequest};
-use jsonwebtoken::{decode, DecodingKey, Validation};
+use actix_web::{FromRequest, HttpRequest, web};
+use jsonwebtoken::{DecodingKey, Validation, decode};
 use uuid::Uuid;
 
-use crate::routes::auth::Claims;
 use crate::AppState;
+use crate::routes::auth::Claims;
 
 pub struct AuthUser {
     pub user_id: Uuid,

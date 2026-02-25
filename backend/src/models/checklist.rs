@@ -63,20 +63,6 @@ impl ChecklistItem {
         .await
     }
 
-    pub async fn set_value_json(
-        pool: &PgPool,
-        id: Uuid,
-        value: &serde_json::Value,
-    ) -> sqlx::Result<Self> {
-        sqlx::query_as::<_, Self>(
-            "UPDATE checklist_items SET value_json = $2 WHERE id = $1 RETURNING *",
-        )
-        .bind(id)
-        .bind(value)
-        .fetch_one(pool)
-        .await
-    }
-
     pub async fn create_default_checklist(
         pool: &PgPool,
         patient_id: Uuid,

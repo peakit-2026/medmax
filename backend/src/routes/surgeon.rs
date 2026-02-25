@@ -1,13 +1,13 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use chrono::NaiveDate;
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::AppState;
 use crate::middleware::auth::AuthUser;
 use crate::models::comment::Comment;
-use crate::models::patient::Patient;
+use crate::models::patient::{Patient, UpdatePatientParams};
 use crate::services::telegram::notify_patient;
-use crate::AppState;
 
 #[derive(Deserialize)]
 pub struct ApproveRequest {
@@ -53,16 +53,18 @@ pub async fn approve(
     if let Some(op_date) = body.operation_date {
         let _ = Patient::update(
             &state.db,
-            id,
-            &patient.full_name,
-            patient.birth_date,
-            patient.snils.as_deref(),
-            patient.insurance_policy.as_deref(),
-            &patient.diagnosis_code,
-            &patient.diagnosis_text,
-            &patient.operation_type,
-            patient.notes.as_deref(),
-            Some(op_date),
+            UpdatePatientParams {
+                id,
+                full_name: &patient.full_name,
+                birth_date: patient.birth_date,
+                snils: patient.snils.as_deref(),
+                insurance_policy: patient.insurance_policy.as_deref(),
+                diagnosis_code: &patient.diagnosis_code,
+                diagnosis_text: &patient.diagnosis_text,
+                operation_type: &patient.operation_type,
+                notes: patient.notes.as_deref(),
+                operation_date: Some(op_date),
+            },
         )
         .await;
     }
@@ -159,7 +161,8 @@ pub async fn list_comments(
 
     match Comment::list_by_patient(&state.db, patient_id).await {
         Ok(comments) => HttpResponse::Ok().json(comments),
-        Err(_) => HttpResponse::InternalServerError()
-            .json(serde_json::json!({"error": "Database error"})),
+        Err(_) => {
+            HttpResponse::InternalServerError().json(serde_json::json!({"error": "Database error"}))
+        }
     }
 }

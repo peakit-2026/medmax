@@ -1,11 +1,11 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use uuid::Uuid;
 
+use crate::AppState;
 use crate::middleware::auth::AuthUser;
 use crate::models::checklist::ChecklistItem;
 use crate::models::patient::Patient;
 use crate::services::pdf;
-use crate::AppState;
 
 pub async fn route_sheet(
     state: web::Data<AppState>,
@@ -27,8 +27,7 @@ pub async fn route_sheet(
     };
 
     if auth.role == "doctor" && patient.doctor_id != auth.user_id {
-        return HttpResponse::Forbidden()
-            .json(serde_json::json!({"error": "Access denied"}));
+        return HttpResponse::Forbidden().json(serde_json::json!({"error": "Access denied"}));
     }
 
     let checklist = match ChecklistItem::list_by_patient(&state.db, patient.id).await {
@@ -44,17 +43,17 @@ pub async fn route_sheet(
     let diagnosis = format!("{} {}", patient.diagnosis_code, patient.diagnosis_text);
     let generation_date = chrono::Utc::now().format("%d.%m.%Y").to_string();
 
-    let pdf_bytes = pdf::generate_route_sheet(
-        &patient.full_name,
-        &patient.birth_date.format("%d.%m.%Y").to_string(),
-        patient.snils.as_deref().unwrap_or("\u{2014}"),
-        patient.insurance_policy.as_deref().unwrap_or("\u{2014}"),
-        &diagnosis,
-        &patient.operation_type,
-        &checklist_titles,
-        &patient.access_code,
-        &generation_date,
-    );
+    let pdf_bytes = pdf::generate_route_sheet(&pdf::RouteSheetParams {
+        patient_name: &patient.full_name,
+        birth_date: &patient.birth_date.format("%d.%m.%Y").to_string(),
+        snils: patient.snils.as_deref().unwrap_or("\u{2014}"),
+        insurance: patient.insurance_policy.as_deref().unwrap_or("\u{2014}"),
+        diagnosis: &diagnosis,
+        operation_type: &patient.operation_type,
+        checklist_items: &checklist_titles,
+        access_code: &patient.access_code,
+        generation_date: &generation_date,
+    });
 
     HttpResponse::Ok()
         .content_type("application/pdf")

@@ -12,11 +12,11 @@ RUN touch src/main.rs && cargo build --release
 
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y ca-certificates libssl3 fonts-liberation && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ca-certificates libssl3 fonts-liberation curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=builder /app/backend/target/release/oculus-backend .
+COPY --from=builder /app/backend/target/release/medmax-backend .
 COPY migrations/ ./migrations/
 
 EXPOSE 8080
-CMD ["./oculus-backend"]
+CMD ["./medmax-backend"]

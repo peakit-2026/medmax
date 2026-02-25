@@ -42,6 +42,16 @@ impl From<User> for UserResponse {
     }
 }
 
+pub struct CreateUserParams<'a> {
+    pub email: &'a str,
+    pub password_hash: &'a str,
+    pub role: &'a str,
+    pub full_name: &'a str,
+    pub phone: Option<&'a str>,
+    pub district: Option<&'a str>,
+    pub organization: Option<&'a str>,
+}
+
 impl User {
     pub async fn find_by_email(pool: &PgPool, email: &str) -> sqlx::Result<Option<Self>> {
         sqlx::query_as::<_, Self>("SELECT * FROM users WHERE email = $1")
@@ -57,26 +67,17 @@ impl User {
             .await
     }
 
-    pub async fn create(
-        pool: &PgPool,
-        email: &str,
-        password_hash: &str,
-        role: &str,
-        full_name: &str,
-        phone: Option<&str>,
-        district: Option<&str>,
-        organization: Option<&str>,
-    ) -> sqlx::Result<Self> {
+    pub async fn create(pool: &PgPool, params: CreateUserParams<'_>) -> sqlx::Result<Self> {
         sqlx::query_as::<_, Self>(
             "INSERT INTO users (email, password_hash, role, full_name, phone, district, organization) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
         )
-        .bind(email)
-        .bind(password_hash)
-        .bind(role)
-        .bind(full_name)
-        .bind(phone)
-        .bind(district)
-        .bind(organization)
+        .bind(params.email)
+        .bind(params.password_hash)
+        .bind(params.role)
+        .bind(params.full_name)
+        .bind(params.phone)
+        .bind(params.district)
+        .bind(params.organization)
         .fetch_one(pool)
         .await
     }

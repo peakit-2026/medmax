@@ -12,11 +12,7 @@ pub struct TelegramSubscription {
 }
 
 impl TelegramSubscription {
-    pub async fn create(
-        pool: &PgPool,
-        patient_id: Uuid,
-        chat_id: i64,
-    ) -> sqlx::Result<Self> {
+    pub async fn create(pool: &PgPool, patient_id: Uuid, chat_id: i64) -> sqlx::Result<Self> {
         if let Some(existing) = Self::find_by_patient(pool, patient_id).await? {
             return Ok(existing);
         }
@@ -29,27 +25,17 @@ impl TelegramSubscription {
         .await
     }
 
-    pub async fn find_by_patient(
-        pool: &PgPool,
-        patient_id: Uuid,
-    ) -> sqlx::Result<Option<Self>> {
-        sqlx::query_as::<_, Self>(
-            "SELECT * FROM telegram_subscriptions WHERE patient_id = $1",
-        )
-        .bind(patient_id)
-        .fetch_optional(pool)
-        .await
+    pub async fn find_by_patient(pool: &PgPool, patient_id: Uuid) -> sqlx::Result<Option<Self>> {
+        sqlx::query_as::<_, Self>("SELECT * FROM telegram_subscriptions WHERE patient_id = $1")
+            .bind(patient_id)
+            .fetch_optional(pool)
+            .await
     }
 
-    pub async fn find_by_chat_id(
-        pool: &PgPool,
-        chat_id: i64,
-    ) -> sqlx::Result<Option<Self>> {
-        sqlx::query_as::<_, Self>(
-            "SELECT * FROM telegram_subscriptions WHERE chat_id = $1",
-        )
-        .bind(chat_id)
-        .fetch_optional(pool)
-        .await
+    pub async fn find_by_chat_id(pool: &PgPool, chat_id: i64) -> sqlx::Result<Option<Self>> {
+        sqlx::query_as::<_, Self>("SELECT * FROM telegram_subscriptions WHERE chat_id = $1")
+            .bind(chat_id)
+            .fetch_optional(pool)
+            .await
     }
 }

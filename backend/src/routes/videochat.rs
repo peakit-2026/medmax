@@ -42,10 +42,7 @@ pub async fn create_ticket(
         }
     };
 
-    let sfu_secret = state
-        .sfu_jwt_secret
-        .as_deref()
-        .unwrap_or(&state.jwt_secret);
+    let sfu_secret = state.sfu_jwt_secret.as_deref().unwrap_or(&state.jwt_secret);
 
     let now = Utc::now().timestamp();
     let claims = RoomTicketClaims {

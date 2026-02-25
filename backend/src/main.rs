@@ -7,7 +7,6 @@ use actix_cors::Cors;
 use actix_web::{App, HttpResponse, HttpServer, web};
 use sqlx::postgres::PgPoolOptions;
 
-
 #[derive(Clone)]
 pub struct AppState {
     pub db: sqlx::PgPool,

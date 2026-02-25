@@ -1,12 +1,14 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::AppState;
 use crate::middleware::auth::AuthUser;
 use crate::models::checklist::ChecklistItem;
-use crate::models::patient::{generate_access_code, Patient};
-use crate::AppState;
+use crate::models::patient::{
+    CreatePatientParams, Patient, UpdatePatientParams, generate_access_code,
+};
 
 #[derive(Deserialize)]
 pub struct CreatePatientRequest {
@@ -45,15 +47,15 @@ pub async fn list(state: web::Data<AppState>, auth: AuthUser) -> HttpResponse {
         "doctor" => Patient::list_by_doctor(&state.db, auth.user_id).await,
         "surgeon" => Patient::list_all(&state.db).await,
         _ => {
-            return HttpResponse::Forbidden()
-                .json(serde_json::json!({"error": "Access denied"}));
+            return HttpResponse::Forbidden().json(serde_json::json!({"error": "Access denied"}));
         }
     };
 
     match result {
         Ok(patients) => HttpResponse::Ok().json(patients),
-        Err(_) => HttpResponse::InternalServerError()
-            .json(serde_json::json!({"error": "Database error"})),
+        Err(_) => {
+            HttpResponse::InternalServerError().json(serde_json::json!({"error": "Database error"}))
+        }
     }
 }
 
@@ -71,16 +73,18 @@ pub async fn create(
 
     let patient = match Patient::create(
         &state.db,
-        auth.user_id,
-        &body.full_name,
-        body.birth_date,
-        body.snils.as_deref(),
-        body.insurance_policy.as_deref(),
-        &body.diagnosis_code,
-        &body.diagnosis_text,
-        &body.operation_type,
-        body.notes.as_deref(),
-        &access_code,
+        CreatePatientParams {
+            doctor_id: auth.user_id,
+            full_name: &body.full_name,
+            birth_date: body.birth_date,
+            snils: body.snils.as_deref(),
+            insurance_policy: body.insurance_policy.as_deref(),
+            diagnosis_code: &body.diagnosis_code,
+            diagnosis_text: &body.diagnosis_text,
+            operation_type: &body.operation_type,
+            notes: body.notes.as_deref(),
+            access_code: &access_code,
+        },
     )
     .await
     {
@@ -125,8 +129,7 @@ pub async fn get(
     };
 
     if auth.role == "doctor" && patient.doctor_id != auth.user_id {
-        return HttpResponse::Forbidden()
-            .json(serde_json::json!({"error": "Access denied"}));
+        return HttpResponse::Forbidden().json(serde_json::json!({"error": "Access denied"}));
     }
 
     let checklist = match ChecklistItem::list_by_patient(&state.db, patient.id).await {
@@ -161,22 +164,23 @@ pub async fn update(
     };
 
     if auth.role == "doctor" && existing.doctor_id != auth.user_id {
-        return HttpResponse::Forbidden()
-            .json(serde_json::json!({"error": "Access denied"}));
+        return HttpResponse::Forbidden().json(serde_json::json!({"error": "Access denied"}));
     }
 
     match Patient::update(
         &state.db,
-        id,
-        &body.full_name,
-        body.birth_date,
-        body.snils.as_deref(),
-        body.insurance_policy.as_deref(),
-        &body.diagnosis_code,
-        &body.diagnosis_text,
-        &body.operation_type,
-        body.notes.as_deref(),
-        body.operation_date,
+        UpdatePatientParams {
+            id,
+            full_name: &body.full_name,
+            birth_date: body.birth_date,
+            snils: body.snils.as_deref(),
+            insurance_policy: body.insurance_policy.as_deref(),
+            diagnosis_code: &body.diagnosis_code,
+            diagnosis_text: &body.diagnosis_text,
+            operation_type: &body.operation_type,
+            notes: body.notes.as_deref(),
+            operation_date: body.operation_date,
+        },
     )
     .await
     {

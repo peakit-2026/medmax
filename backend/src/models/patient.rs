@@ -30,6 +30,32 @@ pub fn generate_access_code() -> String {
     code.to_string()
 }
 
+pub struct CreatePatientParams<'a> {
+    pub doctor_id: Uuid,
+    pub full_name: &'a str,
+    pub birth_date: NaiveDate,
+    pub snils: Option<&'a str>,
+    pub insurance_policy: Option<&'a str>,
+    pub diagnosis_code: &'a str,
+    pub diagnosis_text: &'a str,
+    pub operation_type: &'a str,
+    pub notes: Option<&'a str>,
+    pub access_code: &'a str,
+}
+
+pub struct UpdatePatientParams<'a> {
+    pub id: Uuid,
+    pub full_name: &'a str,
+    pub birth_date: NaiveDate,
+    pub snils: Option<&'a str>,
+    pub insurance_policy: Option<&'a str>,
+    pub diagnosis_code: &'a str,
+    pub diagnosis_text: &'a str,
+    pub operation_type: &'a str,
+    pub notes: Option<&'a str>,
+    pub operation_date: Option<NaiveDate>,
+}
+
 impl Patient {
     pub async fn list_by_doctor(pool: &PgPool, doctor_id: Uuid) -> sqlx::Result<Vec<Self>> {
         sqlx::query_as::<_, Self>(
@@ -60,32 +86,20 @@ impl Patient {
             .await
     }
 
-    pub async fn create(
-        pool: &PgPool,
-        doctor_id: Uuid,
-        full_name: &str,
-        birth_date: NaiveDate,
-        snils: Option<&str>,
-        insurance_policy: Option<&str>,
-        diagnosis_code: &str,
-        diagnosis_text: &str,
-        operation_type: &str,
-        notes: Option<&str>,
-        access_code: &str,
-    ) -> sqlx::Result<Self> {
+    pub async fn create(pool: &PgPool, params: CreatePatientParams<'_>) -> sqlx::Result<Self> {
         sqlx::query_as::<_, Self>(
             "INSERT INTO patients (doctor_id, full_name, birth_date, snils, insurance_policy, diagnosis_code, diagnosis_text, operation_type, notes, access_code) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *",
         )
-        .bind(doctor_id)
-        .bind(full_name)
-        .bind(birth_date)
-        .bind(snils)
-        .bind(insurance_policy)
-        .bind(diagnosis_code)
-        .bind(diagnosis_text)
-        .bind(operation_type)
-        .bind(notes)
-        .bind(access_code)
+        .bind(params.doctor_id)
+        .bind(params.full_name)
+        .bind(params.birth_date)
+        .bind(params.snils)
+        .bind(params.insurance_policy)
+        .bind(params.diagnosis_code)
+        .bind(params.diagnosis_text)
+        .bind(params.operation_type)
+        .bind(params.notes)
+        .bind(params.access_code)
         .fetch_one(pool)
         .await
     }
@@ -100,32 +114,20 @@ impl Patient {
         .await
     }
 
-    pub async fn update(
-        pool: &PgPool,
-        id: Uuid,
-        full_name: &str,
-        birth_date: NaiveDate,
-        snils: Option<&str>,
-        insurance_policy: Option<&str>,
-        diagnosis_code: &str,
-        diagnosis_text: &str,
-        operation_type: &str,
-        notes: Option<&str>,
-        operation_date: Option<NaiveDate>,
-    ) -> sqlx::Result<Self> {
+    pub async fn update(pool: &PgPool, params: UpdatePatientParams<'_>) -> sqlx::Result<Self> {
         sqlx::query_as::<_, Self>(
             "UPDATE patients SET full_name = $2, birth_date = $3, snils = $4, insurance_policy = $5, diagnosis_code = $6, diagnosis_text = $7, operation_type = $8, notes = $9, operation_date = $10, updated_at = NOW() WHERE id = $1 RETURNING *",
         )
-        .bind(id)
-        .bind(full_name)
-        .bind(birth_date)
-        .bind(snils)
-        .bind(insurance_policy)
-        .bind(diagnosis_code)
-        .bind(diagnosis_text)
-        .bind(operation_type)
-        .bind(notes)
-        .bind(operation_date)
+        .bind(params.id)
+        .bind(params.full_name)
+        .bind(params.birth_date)
+        .bind(params.snils)
+        .bind(params.insurance_policy)
+        .bind(params.diagnosis_code)
+        .bind(params.diagnosis_text)
+        .bind(params.operation_type)
+        .bind(params.notes)
+        .bind(params.operation_date)
         .fetch_one(pool)
         .await
     }

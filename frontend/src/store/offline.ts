@@ -1,6 +1,6 @@
 import { openDB } from 'idb'
 
-const DB_NAME = 'oculus-offline'
+const DB_NAME = 'medmax-offline'
 const STORE_NAME = 'pending-requests'
 
 async function getDb() {

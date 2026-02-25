@@ -19,33 +19,19 @@ enum Command {
     Help,
 }
 
-async fn handle_command(
-    bot: Bot,
-    msg: Message,
-    cmd: Command,
-    pool: PgPool,
-) -> ResponseResult<()> {
+async fn handle_command(bot: Bot, msg: Message, cmd: Command, pool: PgPool) -> ResponseResult<()> {
     match cmd {
         Command::Start(code) => {
             let code = code.trim().to_string();
             if code.is_empty() {
-                bot.send_message(
-                    msg.chat.id,
-                    "Укажите код доступа: /start <код>",
-                )
-                .await?;
+                bot.send_message(msg.chat.id, "Укажите код доступа: /start <код>")
+                    .await?;
                 return Ok(());
             }
 
             match Patient::find_by_access_code(&pool, &code).await {
                 Ok(Some(patient)) => {
-                    match TelegramSubscription::create(
-                        &pool,
-                        patient.id,
-                        msg.chat.id.0,
-                    )
-                    .await
-                    {
+                    match TelegramSubscription::create(&pool, patient.id, msg.chat.id.0).await {
                         Ok(_) => {
                             bot.send_message(
                                 msg.chat.id,
@@ -57,24 +43,17 @@ async fn handle_command(
                             .await?;
                         }
                         Err(_) => {
-                            bot.send_message(
-                                msg.chat.id,
-                                "Ошибка при подписке. Попробуйте позже.",
-                            )
-                            .await?;
+                            bot.send_message(msg.chat.id, "Ошибка при подписке. Попробуйте позже.")
+                                .await?;
                         }
                     }
                 }
                 Ok(None) => {
-                    bot.send_message(
-                        msg.chat.id,
-                        "Пациент с таким кодом не найден.",
-                    )
-                    .await?;
+                    bot.send_message(msg.chat.id, "Пациент с таким кодом не найден.")
+                        .await?;
                 }
                 Err(_) => {
-                    bot.send_message(msg.chat.id, "Ошибка базы данных.")
-                        .await?;
+                    bot.send_message(msg.chat.id, "Ошибка базы данных.").await?;
                 }
             }
         }
@@ -83,8 +62,7 @@ async fn handle_command(
             match TelegramSubscription::find_by_chat_id(&pool, chat_id).await {
                 Ok(Some(sub)) => {
                     let patient = Patient::find_by_id(&pool, sub.patient_id).await;
-                    let checklist =
-                        ChecklistItem::list_by_patient(&pool, sub.patient_id).await;
+                    let checklist = ChecklistItem::list_by_patient(&pool, sub.patient_id).await;
 
                     let mut text = String::new();
 
@@ -99,10 +77,7 @@ async fn handle_command(
                     if let Ok(items) = checklist {
                         let total = items.len();
                         let done = items.iter().filter(|i| i.is_completed).count();
-                        text.push_str(&format!(
-                            "\nЧек-лист: {} из {} выполнено",
-                            done, total
-                        ));
+                        text.push_str(&format!("\nЧек-лист: {} из {} выполнено", done, total));
                         for item in &items {
                             let mark = if item.is_completed { "+" } else { "-" };
                             text.push_str(&format!("\n [{}] {}", mark, item.title));
@@ -123,8 +98,7 @@ async fn handle_command(
                     .await?;
                 }
                 Err(_) => {
-                    bot.send_message(msg.chat.id, "Ошибка базы данных.")
-                        .await?;
+                    bot.send_message(msg.chat.id, "Ошибка базы данных.").await?;
                 }
             }
         }

@@ -1,11 +1,11 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::middleware::auth::AuthUser;
-use crate::models::iol::IolCalculation;
-use crate::services::iol;
 use crate::AppState;
+use crate::middleware::auth::AuthUser;
+use crate::models::iol::{CreateIolParams, IolCalculation};
+use crate::services::iol;
 
 #[derive(Deserialize)]
 pub struct CalculateRequest {
@@ -45,15 +45,17 @@ pub async fn calculate(
 
     match IolCalculation::create(
         &state.db,
-        body.patient_id,
-        &body.eye,
-        body.k1,
-        body.k2,
-        body.axial_length,
-        body.acd,
-        body.target_refraction,
-        &body.formula,
-        recommended_iol,
+        CreateIolParams {
+            patient_id: body.patient_id,
+            eye: &body.eye,
+            k1: body.k1,
+            k2: body.k2,
+            axial_length: body.axial_length,
+            acd: body.acd,
+            target_refraction: body.target_refraction,
+            formula: &body.formula,
+            recommended_iol,
+        },
     )
     .await
     {
@@ -72,7 +74,8 @@ pub async fn list_by_patient(
 
     match IolCalculation::list_by_patient(&state.db, patient_id).await {
         Ok(calcs) => HttpResponse::Ok().json(calcs),
-        Err(_) => HttpResponse::InternalServerError()
-            .json(serde_json::json!({"error": "Database error"})),
+        Err(_) => {
+            HttpResponse::InternalServerError().json(serde_json::json!({"error": "Database error"}))
+        }
     }
 }

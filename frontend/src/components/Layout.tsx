@@ -7,20 +7,22 @@ function Layout() {
   const logout = useAuthStore((s) => s.logout)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b shadow-sm">
-        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
-          <span className="text-lg font-bold text-gray-900">Окулус-Фельдшер</span>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-700">{user?.full_name}</span>
-            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{user?.role === 'doctor' ? 'Врач' : 'Хирург'}</span>
-            <button onClick={logout} className="text-sm text-red-600 hover:text-red-700">
+    <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+      <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <div style={{ maxWidth: '1024px', margin: '0 auto', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: '18px', fontWeight: 700 }}>MedMAX</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span style={{ fontSize: '14px', color: '#374151' }}>{user?.full_name}</span>
+            <span style={{ fontSize: '12px', background: '#f3f4f6', color: '#4b5563', padding: '4px 8px', borderRadius: '4px' }}>
+              {user?.role === 'doctor' ? 'Врач' : 'Хирург'}
+            </span>
+            <button onClick={logout} style={{ fontSize: '14px', color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>
               Выйти
             </button>
           </div>
         </div>
       </header>
-      <main className="max-w-5xl mx-auto p-6">
+      <main style={{ maxWidth: '1024px', margin: '0 auto', padding: '24px' }}>
         <Outlet />
       </main>
       <OfflineIndicator />

@@ -1,12 +1,12 @@
-use actix_web::{web, HttpResponse};
-use bcrypt::{hash, verify, DEFAULT_COST};
+use actix_web::{HttpResponse, web};
+use bcrypt::{DEFAULT_COST, hash, verify};
 use chrono::Utc;
-use jsonwebtoken::{encode, EncodingKey, Header};
+use jsonwebtoken::{EncodingKey, Header, encode};
 use serde::{Deserialize, Serialize};
 
-use crate::middleware::auth::AuthUser;
-use crate::models::user::{User, UserResponse};
 use crate::AppState;
+use crate::middleware::auth::AuthUser;
+use crate::models::user::{CreateUserParams, User, UserResponse};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -45,13 +45,14 @@ fn create_token(user: &User, secret: &str) -> Result<String, jsonwebtoken::error
         role: user.role.clone(),
         exp,
     };
-    encode(&Header::default(), &claims, &EncodingKey::from_secret(secret.as_bytes()))
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret.as_bytes()),
+    )
 }
 
-pub async fn login(
-    state: web::Data<AppState>,
-    body: web::Json<LoginRequest>,
-) -> HttpResponse {
+pub async fn login(state: web::Data<AppState>, body: web::Json<LoginRequest>) -> HttpResponse {
     let user = match User::find_by_email(&state.db, &body.email).await {
         Ok(Some(u)) => u,
         Ok(None) => {
@@ -100,13 +101,15 @@ pub async fn register(
 
     let user = match User::create(
         &state.db,
-        &body.email,
-        &password_hash,
-        &body.role,
-        &body.full_name,
-        body.phone.as_deref(),
-        body.district.as_deref(),
-        body.organization.as_deref(),
+        CreateUserParams {
+            email: &body.email,
+            password_hash: &password_hash,
+            role: &body.role,
+            full_name: &body.full_name,
+            phone: body.phone.as_deref(),
+            district: body.district.as_deref(),
+            organization: body.organization.as_deref(),
+        },
     )
     .await
     {
@@ -136,18 +139,12 @@ pub async fn register(
     })
 }
 
-pub async fn me(
-    state: web::Data<AppState>,
-    auth: AuthUser,
-) -> HttpResponse {
+pub async fn me(state: web::Data<AppState>, auth: AuthUser) -> HttpResponse {
     match User::find_by_id(&state.db, auth.user_id).await {
         Ok(Some(user)) => HttpResponse::Ok().json(UserResponse::from(user)),
-        Ok(None) => {
-            HttpResponse::NotFound().json(serde_json::json!({"error": "User not found"}))
-        }
+        Ok(None) => HttpResponse::NotFound().json(serde_json::json!({"error": "User not found"})),
         Err(_) => {
-            HttpResponse::InternalServerError()
-                .json(serde_json::json!({"error": "Database error"}))
+            HttpResponse::InternalServerError().json(serde_json::json!({"error": "Database error"}))
         }
     }
 }

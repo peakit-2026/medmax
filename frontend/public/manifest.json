@@ -1,6 +1,6 @@
 {
-  "name": "Окулус-Фельдшер",
-  "short_name": "Окулус",
+  "name": "MedMAX",
+  "short_name": "MedMAX",
   "description": "Платформа подготовки пациентов к операциям",
   "start_url": "/",
   "display": "standalone",

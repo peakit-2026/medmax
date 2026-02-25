@@ -16,34 +16,35 @@ pub struct MediaFile {
     pub created_at: DateTime<Utc>,
 }
 
+pub struct CreateMediaParams<'a> {
+    pub patient_id: Uuid,
+    pub checklist_item_id: Option<Uuid>,
+    pub file_name: &'a str,
+    pub file_path: &'a str,
+    pub file_type: &'a str,
+    pub file_size: i64,
+    pub uploaded_by: Uuid,
+}
+
 impl MediaFile {
-    pub async fn create(
-        pool: &PgPool,
-        patient_id: Uuid,
-        checklist_item_id: Option<Uuid>,
-        file_name: &str,
-        file_path: &str,
-        file_type: &str,
-        file_size: i64,
-        uploaded_by: Uuid,
-    ) -> sqlx::Result<Self> {
+    pub async fn create(pool: &PgPool, params: CreateMediaParams<'_>) -> sqlx::Result<Self> {
         sqlx::query_as::<_, Self>(
             "INSERT INTO media_files (patient_id, checklist_item_id, file_name, file_path, file_type, file_size, uploaded_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *"
         )
-        .bind(patient_id)
-        .bind(checklist_item_id)
-        .bind(file_name)
-        .bind(file_path)
-        .bind(file_type)
-        .bind(file_size)
-        .bind(uploaded_by)
+        .bind(params.patient_id)
+        .bind(params.checklist_item_id)
+        .bind(params.file_name)
+        .bind(params.file_path)
+        .bind(params.file_type)
+        .bind(params.file_size)
+        .bind(params.uploaded_by)
         .fetch_one(pool)
         .await
     }
 
     pub async fn list_by_patient(pool: &PgPool, patient_id: Uuid) -> sqlx::Result<Vec<Self>> {
         sqlx::query_as::<_, Self>(
-            "SELECT * FROM media_files WHERE patient_id = $1 ORDER BY created_at DESC"
+            "SELECT * FROM media_files WHERE patient_id = $1 ORDER BY created_at DESC",
         )
         .bind(patient_id)
         .fetch_all(pool)

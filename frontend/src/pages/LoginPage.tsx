@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
 
@@ -8,7 +8,15 @@ function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const login = useAuthStore((s) => s.login)
+  const user = useAuthStore((s) => s.user)
+  const authLoading = useAuthStore((s) => s.loading)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate(user.role === 'surgeon' ? '/surgeon' : '/doctor', { replace: true })
+    }
+  }, [authLoading, user, navigate])
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -32,7 +40,7 @@ function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="w-full max-w-sm">
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-2xl font-bold text-center mb-6">Окулус-Фельдшер</h1>
+          <h1 className="text-2xl font-bold text-center mb-6">MedMAX</h1>
           {error && <p className="text-red-600 mb-4">{error}</p>}
           <div className="flex flex-col gap-4">
             <input

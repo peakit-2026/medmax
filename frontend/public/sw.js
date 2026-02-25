@@ -1,4 +1,4 @@
-const CACHE_NAME = 'oculus-v1'
+const CACHE_NAME = 'medmax-v1'
 const SHELL_URLS = ['/', '/index.html']
 
 self.addEventListener('install', (event) => {
