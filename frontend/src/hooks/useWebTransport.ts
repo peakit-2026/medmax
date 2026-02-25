@@ -159,8 +159,8 @@ export function useWebTransport(roomId: string) {
                 frame.close()
                 continue
               }
+              const keyFrame = frameCountRef.current % 30 === 0
               frameCountRef.current++
-              const keyFrame = frameCountRef.current % 60 === 0
               videoEncoder.encode(frame, { keyFrame })
               frame.close()
             }
@@ -183,7 +183,7 @@ export function useWebTransport(roomId: string) {
             ctx.drawImage(video, 0, 0, 640, 480)
             const frame = new VideoFrame(canvas, { timestamp: performance.now() * 1000 })
             frameCountRef.current++
-            const keyFrame = frameCountRef.current % 60 === 0
+            const keyFrame = frameCountRef.current % 30 === 0
             videoEncoder.encode(frame, { keyFrame })
             frame.close()
           }, 33)
