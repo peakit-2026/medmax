@@ -4,10 +4,9 @@ import { useAuthStore } from './store/auth'
 import LoginPage from './pages/LoginPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
-
-function DoctorDashboard() {
-  return <div>Doctor Dashboard (coming soon)</div>
-}
+import DoctorDashboard from './pages/doctor/DoctorDashboard'
+import NewPatientForm from './pages/doctor/NewPatientForm'
+import PatientCard from './pages/doctor/PatientCard'
 
 function SurgeonDashboard() {
   return <div>Surgeon Dashboard (coming soon)</div>
@@ -32,6 +31,8 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
           <Route element={<Layout />}>
             <Route path="/doctor" element={<DoctorDashboard />} />
+            <Route path="/doctor/new" element={<NewPatientForm />} />
+            <Route path="/doctor/patient/:id" element={<PatientCard />} />
           </Route>
         </Route>
         <Route element={<ProtectedRoute allowedRoles={['surgeon']} />}>

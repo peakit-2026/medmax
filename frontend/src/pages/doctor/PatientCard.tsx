@@ -1,0 +1,91 @@
+import { useState, useEffect } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import api from '../../api/client'
+import StatusBadge from '../../components/StatusBadge'
+import type { PatientWithChecklist } from '../../types/index'
+
+function PatientCard() {
+  const { id } = useParams()
+  const [patient, setPatient] = useState<PatientWithChecklist | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.get<PatientWithChecklist>(`/patients/${id}`).then((res) => {
+      setPatient(res.data)
+      setLoading(false)
+    })
+  }, [id])
+
+  if (loading) return <div>Загрузка...</div>
+  if (!patient) return <div>Пациент не найден</div>
+
+  return (
+    <div>
+      <Link to="/doctor" className="text-blue-600 mb-4 inline-block">
+        &larr; К списку пациентов
+      </Link>
+
+      <h1 className="text-xl font-semibold mb-4">{patient.full_name}</h1>
+
+      <div className="grid grid-cols-2 gap-2 mb-6 max-w-lg">
+        <span className="text-gray-600">Дата рождения:</span>
+        <span>{patient.birth_date}</span>
+
+        <span className="text-gray-600">СНИЛС:</span>
+        <span>{patient.snils ?? '—'}</span>
+
+        <span className="text-gray-600">Полис ОМС:</span>
+        <span>{patient.insurance_policy ?? '—'}</span>
+
+        <span className="text-gray-600">Код МКБ-10:</span>
+        <span>{patient.diagnosis_code}</span>
+
+        <span className="text-gray-600">Диагноз:</span>
+        <span>{patient.diagnosis_text}</span>
+
+        <span className="text-gray-600">Тип операции:</span>
+        <span>{patient.operation_type}</span>
+
+        <span className="text-gray-600">Статус:</span>
+        <span>
+          <StatusBadge status={patient.status} />
+        </span>
+
+        <span className="text-gray-600">Код доступа:</span>
+        <span className="font-mono">{patient.access_code}</span>
+
+        <span className="text-gray-600">Дата операции:</span>
+        <span>{patient.operation_date ?? '—'}</span>
+
+        {patient.notes && (
+          <>
+            <span className="text-gray-600">Примечания:</span>
+            <span>{patient.notes}</span>
+          </>
+        )}
+      </div>
+
+      <h2 className="text-lg font-semibold mb-2">Чек-лист подготовки</h2>
+
+      {patient.checklist.length === 0 ? (
+        <p className="text-gray-500">Чек-лист пуст</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {patient.checklist.map((item) => (
+            <li key={item.id} className="flex items-center gap-2 border p-2 rounded">
+              <span className={item.is_completed ? 'text-green-600' : 'text-gray-400'}>
+                {item.is_completed ? '✓' : '○'}
+              </span>
+              <span>{item.title}</span>
+              {item.description && (
+                <span className="text-gray-500 text-sm">— {item.description}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+export default PatientCard
