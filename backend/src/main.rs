@@ -62,6 +62,14 @@ async fn main() -> std::io::Result<()> {
                     .route("/register", web::post().to(routes::auth::register))
                     .route("/me", web::get().to(routes::auth::me)),
             )
+            .service(
+                web::scope("/api/patients")
+                    .route("", web::get().to(routes::patients::list))
+                    .route("", web::post().to(routes::patients::create))
+                    .route("/code/{code}", web::get().to(routes::patients::get_by_code))
+                    .route("/{id}", web::get().to(routes::patients::get))
+                    .route("/{id}", web::put().to(routes::patients::update)),
+            )
     })
     .bind("0.0.0.0:8080")?
     .run()
