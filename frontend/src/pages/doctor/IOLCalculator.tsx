@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../../api/client'
-import { usePatientStore } from '../../store/patients'
+import { usePatientStore, selectIolCalcs } from '../../store/patients'
 import type { IolCalculation } from '../../types/index'
 
 function IOLCalculator() {
   const { id } = useParams()
-  const history = usePatientStore((s) => s.iolCalcs.get(id!) || [])
+  const history = usePatientStore(selectIolCalcs(id!))
   const fetchIol = usePatientStore((s) => s.fetchIol)
   const addIolCalc = usePatientStore((s) => s.addIolCalc)
   const [eye, setEye] = useState('right')

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../api/client'
 import { compressImage } from '../hooks/useImageCompression'
-import { usePatientStore } from '../store/patients'
+import { usePatientStore, selectMedia } from '../store/patients'
 import ImageViewer from './ImageViewer'
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
 }
 
 function MediaGallery({ patientId }: Props) {
-  const files = usePatientStore((s) => s.media.get(patientId) || [])
+  const files = usePatientStore(selectMedia(patientId))
   const fetchMedia = usePatientStore((s) => s.fetchMedia)
   const deleteMedia = usePatientStore((s) => s.deleteMedia)
   const addMediaFile = usePatientStore((s) => s.addMediaFile)

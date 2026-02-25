@@ -3,13 +3,13 @@ import { useParams, Link } from 'react-router-dom'
 import StatusBadge from '../../components/StatusBadge'
 import MediaGallery from '../../components/MediaGallery'
 import VideoCall from '../../components/VideoCall'
-import { usePatientStore } from '../../store/patients'
+import { usePatientStore, selectComments, selectIolCalcs } from '../../store/patients'
 
 function PatientReview() {
   const { id } = useParams()
-  const patient = usePatientStore((s) => s.patients.get(id!))
-  const comments = usePatientStore((s) => s.comments.get(id!) || [])
-  const iolCalcs = usePatientStore((s) => s.iolCalcs.get(id!) || [])
+  const patient = usePatientStore((s) => s.patients[id!])
+  const comments = usePatientStore(selectComments(id!))
+  const iolCalcs = usePatientStore(selectIolCalcs(id!))
   const fetchPatient = usePatientStore((s) => s.fetchPatient)
   const fetchComments = usePatientStore((s) => s.fetchComments)
   const fetchIol = usePatientStore((s) => s.fetchIol)

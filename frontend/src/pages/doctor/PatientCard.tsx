@@ -9,7 +9,7 @@ import { usePatientStore } from '../../store/patients'
 
 function PatientCard() {
   const { id } = useParams()
-  const patient = usePatientStore((s) => s.patients.get(id!))
+  const patient = usePatientStore((s) => s.patients[id!])
   const fetchPatient = usePatientStore((s) => s.fetchPatient)
   const fetchPatients = usePatientStore((s) => s.fetchPatients)
   const [showVideo, setShowVideo] = useState(false)

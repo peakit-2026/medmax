@@ -2,12 +2,16 @@ import { create } from 'zustand'
 import api from '../api/client'
 import type { Patient, PatientWithChecklist, Comment, IolCalculation, MediaFile } from '../types/index'
 
+const EMPTY_COMMENTS: Comment[] = []
+const EMPTY_IOL: IolCalculation[] = []
+const EMPTY_MEDIA: MediaFile[] = []
+
 interface PatientState {
-  patients: Map<string, PatientWithChecklist>
+  patients: Record<string, PatientWithChecklist>
   patientList: Patient[]
-  comments: Map<string, Comment[]>
-  iolCalcs: Map<string, IolCalculation[]>
-  media: Map<string, MediaFile[]>
+  comments: Record<string, Comment[]>
+  iolCalcs: Record<string, IolCalculation[]>
+  media: Record<string, MediaFile[]>
   listFetchedAt: number
 
   fetchPatients: () => Promise<void>
@@ -27,20 +31,20 @@ interface PatientState {
 }
 
 export const usePatientStore = create<PatientState>((set, get) => ({
-  patients: new Map(),
+  patients: {},
   patientList: [],
-  comments: new Map(),
-  iolCalcs: new Map(),
-  media: new Map(),
+  comments: {},
+  iolCalcs: {},
+  media: {},
   listFetchedAt: 0,
 
   fetchPatients: async () => {
     const { data } = await api.get<Patient[]>('/patients')
-    const patients = new Map(get().patients)
+    const patients = { ...get().patients }
     data.forEach((p) => {
-      const existing = patients.get(p.id)
+      const existing = patients[p.id]
       if (existing) {
-        patients.set(p.id, { ...existing, ...p })
+        patients[p.id] = { ...existing, ...p }
       }
     })
     set({ patientList: data, patients, listFetchedAt: Date.now() })
@@ -48,30 +52,22 @@ export const usePatientStore = create<PatientState>((set, get) => ({
 
   fetchPatient: async (id) => {
     const { data } = await api.get<PatientWithChecklist>(`/patients/${id}`)
-    const patients = new Map(get().patients)
-    patients.set(id, data)
-    set({ patients })
+    set({ patients: { ...get().patients, [id]: data } })
   },
 
   fetchComments: async (patientId) => {
     const { data } = await api.get<Comment[]>(`/comments/patient/${patientId}`)
-    const comments = new Map(get().comments)
-    comments.set(patientId, data)
-    set({ comments })
+    set({ comments: { ...get().comments, [patientId]: data } })
   },
 
   fetchIol: async (patientId) => {
     const { data } = await api.get<IolCalculation[]>(`/iol/patient/${patientId}`)
-    const iolCalcs = new Map(get().iolCalcs)
-    iolCalcs.set(patientId, data)
-    set({ iolCalcs })
+    set({ iolCalcs: { ...get().iolCalcs, [patientId]: data } })
   },
 
   fetchMedia: async (patientId) => {
     const { data } = await api.get<MediaFile[]>(`/media/patient/${patientId}`)
-    const media = new Map(get().media)
-    media.set(patientId, data)
-    set({ media })
+    set({ media: { ...get().media, [patientId]: data } })
   },
 
   createPatient: async (data) => {
@@ -81,17 +77,19 @@ export const usePatientStore = create<PatientState>((set, get) => ({
   },
 
   toggleChecklist: async (itemId, patientId, currentCompleted) => {
-    const patients = new Map(get().patients)
-    const patient = patients.get(patientId)
+    const patient = get().patients[patientId]
     if (patient) {
-      const updated = {
-        ...patient,
-        checklist: patient.checklist.map((c) =>
-          c.id === itemId ? { ...c, is_completed: !currentCompleted } : c
-        ),
-      }
-      patients.set(patientId, updated)
-      set({ patients })
+      set({
+        patients: {
+          ...get().patients,
+          [patientId]: {
+            ...patient,
+            checklist: patient.checklist.map((c) =>
+              c.id === itemId ? { ...c, is_completed: !currentCompleted } : c
+            ),
+          },
+        },
+      })
     }
 
     try {
@@ -101,17 +99,19 @@ export const usePatientStore = create<PatientState>((set, get) => ({
         await api.put(`/checklists/${itemId}/complete`)
       }
     } catch {
-      const patients = new Map(get().patients)
-      const patient = patients.get(patientId)
+      const patient = get().patients[patientId]
       if (patient) {
-        const reverted = {
-          ...patient,
-          checklist: patient.checklist.map((c) =>
-            c.id === itemId ? { ...c, is_completed: currentCompleted } : c
-          ),
-        }
-        patients.set(patientId, reverted)
-        set({ patients })
+        set({
+          patients: {
+            ...get().patients,
+            [patientId]: {
+              ...patient,
+              checklist: patient.checklist.map((c) =>
+                c.id === itemId ? { ...c, is_completed: currentCompleted } : c
+              ),
+            },
+          },
+        })
       }
     }
   },
@@ -126,32 +126,26 @@ export const usePatientStore = create<PatientState>((set, get) => ({
       created_at: new Date().toISOString(),
     }
 
-    const comments = new Map(get().comments)
-    const existing = comments.get(patientId) || []
-    comments.set(patientId, [...existing, optimistic])
-    set({ comments })
+    const existing = get().comments[patientId] ?? []
+    set({ comments: { ...get().comments, [patientId]: [...existing, optimistic] } })
 
     try {
       await api.post('/comments', { patient_id: patientId, content })
       get().fetchComments(patientId)
     } catch {
-      const comments = new Map(get().comments)
-      const current = comments.get(patientId) || []
-      comments.set(patientId, current.filter((c) => c.id !== tempId))
-      set({ comments })
+      const current = get().comments[patientId] ?? []
+      set({ comments: { ...get().comments, [patientId]: current.filter((c) => c.id !== tempId) } })
     }
   },
 
   approvePatient: async (id, operationDate) => {
-    const patients = new Map(get().patients)
-    const patient = patients.get(id)
+    const patient = get().patients[id]
     const prevStatus = patient?.status
     const prevDate = patient?.operation_date
 
     if (patient) {
-      patients.set(id, { ...patient, status: 'green', operation_date: operationDate })
-      set({ patients })
       set({
+        patients: { ...get().patients, [id]: { ...patient, status: 'green', operation_date: operationDate } },
         patientList: get().patientList.map((p) =>
           p.id === id ? { ...p, status: 'green' as const, operation_date: operationDate } : p
         ),
@@ -162,10 +156,8 @@ export const usePatientStore = create<PatientState>((set, get) => ({
       await api.post(`/surgeon/patients/${id}/approve`, { operation_date: operationDate })
     } catch {
       if (patient && prevStatus) {
-        const patients = new Map(get().patients)
-        patients.set(id, { ...patient, status: prevStatus, operation_date: prevDate ?? null })
-        set({ patients })
         set({
+          patients: { ...get().patients, [id]: { ...patient, status: prevStatus, operation_date: prevDate ?? null } },
           patientList: get().patientList.map((p) =>
             p.id === id ? { ...p, status: prevStatus, operation_date: prevDate ?? null } : p
           ),
@@ -175,14 +167,12 @@ export const usePatientStore = create<PatientState>((set, get) => ({
   },
 
   rejectPatient: async (id, comment) => {
-    const patients = new Map(get().patients)
-    const patient = patients.get(id)
+    const patient = get().patients[id]
     const prevStatus = patient?.status
 
     if (patient) {
-      patients.set(id, { ...patient, status: 'red' })
-      set({ patients })
       set({
+        patients: { ...get().patients, [id]: { ...patient, status: 'red' } },
         patientList: get().patientList.map((p) =>
           p.id === id ? { ...p, status: 'red' as const } : p
         ),
@@ -194,10 +184,8 @@ export const usePatientStore = create<PatientState>((set, get) => ({
       get().fetchComments(id)
     } catch {
       if (patient && prevStatus) {
-        const patients = new Map(get().patients)
-        patients.set(id, { ...patient, status: prevStatus })
-        set({ patients })
         set({
+          patients: { ...get().patients, [id]: { ...patient, status: prevStatus } },
           patientList: get().patientList.map((p) =>
             p.id === id ? { ...p, status: prevStatus } : p
           ),
@@ -207,35 +195,36 @@ export const usePatientStore = create<PatientState>((set, get) => ({
   },
 
   deleteMedia: async (mediaId, patientId) => {
-    const media = new Map(get().media)
-    const existing = media.get(patientId) || []
+    const existing = get().media[patientId] ?? []
     const removed = existing.find((f) => f.id === mediaId)
-    media.set(patientId, existing.filter((f) => f.id !== mediaId))
-    set({ media })
+    set({ media: { ...get().media, [patientId]: existing.filter((f) => f.id !== mediaId) } })
 
     try {
       await api.delete(`/media/${mediaId}`)
     } catch {
       if (removed) {
-        const media = new Map(get().media)
-        const current = media.get(patientId) || []
-        media.set(patientId, [...current, removed])
-        set({ media })
+        const current = get().media[patientId] ?? []
+        set({ media: { ...get().media, [patientId]: [...current, removed] } })
       }
     }
   },
 
   addIolCalc: (patientId, calc) => {
-    const iolCalcs = new Map(get().iolCalcs)
-    const existing = iolCalcs.get(patientId) || []
-    iolCalcs.set(patientId, [calc, ...existing])
-    set({ iolCalcs })
+    const existing = get().iolCalcs[patientId] ?? []
+    set({ iolCalcs: { ...get().iolCalcs, [patientId]: [calc, ...existing] } })
   },
 
   addMediaFile: (patientId, file) => {
-    const media = new Map(get().media)
-    const existing = media.get(patientId) || []
-    media.set(patientId, [...existing, file])
-    set({ media })
+    const existing = get().media[patientId] ?? []
+    set({ media: { ...get().media, [patientId]: [...existing, file] } })
   },
 }))
+
+export const selectComments = (patientId: string) => (s: PatientState) =>
+  s.comments[patientId] ?? EMPTY_COMMENTS
+
+export const selectIolCalcs = (patientId: string) => (s: PatientState) =>
+  s.iolCalcs[patientId] ?? EMPTY_IOL
+
+export const selectMedia = (patientId: string) => (s: PatientState) =>
+  s.media[patientId] ?? EMPTY_MEDIA
