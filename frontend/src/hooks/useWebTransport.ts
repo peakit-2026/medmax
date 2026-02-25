@@ -57,6 +57,11 @@ export function useWebTransport(roomId: string) {
     try {
       cleanup()
 
+      if (typeof WebTransport === 'undefined') {
+        setState((s) => ({ ...s, error: 'Ваш браузер не поддерживает видеозвонки. Используйте Chrome или Edge на ПК.' }))
+        return
+      }
+
       const { data } = await api.post('/videochat/ticket', { room_id: roomId })
       const { ticket, sfu_url } = data
 
@@ -64,7 +69,15 @@ export function useWebTransport(roomId: string) {
       const transport = new WebTransport(url)
       transportRef.current = transport
 
-      await transport.ready
+      await Promise.race([
+        transport.ready,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Не удалось подключиться к серверу видео')), 10000)),
+      ])
+
+      transport.closed.then(() => {
+        setState((s) => ({ ...s, isConnected: false }))
+      }).catch(() => {})
+
       setState((s) => ({ ...s, isConnected: true, error: null }))
 
       const abort = new AbortController()
@@ -350,9 +363,6 @@ export function useWebTransport(roomId: string) {
         dgramReader.releaseLock()
       })()
 
-      transport.closed.then(() => {
-        setState((s) => ({ ...s, isConnected: false }))
-      })
     } catch (e: any) {
       setState((s) => ({ ...s, error: e.message || 'Connection failed', isConnected: false }))
     }
