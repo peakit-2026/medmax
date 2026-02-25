@@ -35,14 +35,20 @@ function PatientCard() {
 
       <div className="flex items-center gap-3 mb-6">
         <h1 className="text-2xl font-bold">{patient.full_name}</h1>
-        <a
-          href={`/api/patients/${patient.id}/route-sheet`}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          onClick={async () => {
+            const res = await api.get(`/patients/${patient.id}/route-sheet`, { responseType: 'blob' })
+            const url = URL.createObjectURL(res.data)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = 'route-sheet.pdf'
+            a.click()
+            URL.revokeObjectURL(url)
+          }}
           className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 text-sm"
         >
           Скачать маршрутный лист
-        </a>
+        </button>
         <button
           onClick={() => setShowVideo(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
