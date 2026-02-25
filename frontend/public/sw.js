@@ -17,7 +17,11 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event
-  if (request.url.includes('/api/')) {
+  const url = new URL(request.url)
+
+  if (url.origin !== self.location.origin) return
+
+  if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -33,7 +37,9 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(request).then((cached) => {
         const fetchPromise = fetch(request).then((response) => {
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()))
+          if (response.ok) {
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()))
+          }
           return response
         })
         return cached || fetchPromise
