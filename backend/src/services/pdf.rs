@@ -148,7 +148,7 @@ pub fn generate_route_sheet(params: &RouteSheetParams<'_>) -> Vec<u8> {
     layer.use_text(code_line.as_str(), 11.0, left, y, &bold_font);
     y -= line_height;
 
-    let url_line = format!("https://medmax.example.ru/patient/{}", params.access_code);
+    let url_line = format!("https://yarokb.ru/patient/{}", params.access_code);
     layer.use_text(url_line.as_str(), 9.0, left, y, &font);
     y -= Mm(15.0);
 
