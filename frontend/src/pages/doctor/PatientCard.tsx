@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../../api/client'
 import StatusBadge from '../../components/StatusBadge'
+import ChecklistItemRow from '../../components/ChecklistItemRow'
 import type { PatientWithChecklist } from '../../types/index'
 
 function PatientCard() {
@@ -9,12 +10,16 @@ function PatientCard() {
   const [patient, setPatient] = useState<PatientWithChecklist | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
+  const fetchPatient = useCallback(() => {
     api.get<PatientWithChecklist>(`/patients/${id}`).then((res) => {
       setPatient(res.data)
       setLoading(false)
     })
   }, [id])
+
+  useEffect(() => {
+    fetchPatient()
+  }, [fetchPatient])
 
   if (loading) return <div>Загрузка...</div>
   if (!patient) return <div>Пациент не найден</div>
@@ -72,15 +77,12 @@ function PatientCard() {
       ) : (
         <ul className="flex flex-col gap-2">
           {patient.checklist.map((item) => (
-            <li key={item.id} className="flex items-center gap-2 border p-2 rounded">
-              <span className={item.is_completed ? 'text-green-600' : 'text-gray-400'}>
-                {item.is_completed ? '✓' : '○'}
-              </span>
-              <span>{item.title}</span>
-              {item.description && (
-                <span className="text-gray-500 text-sm">— {item.description}</span>
-              )}
-            </li>
+            <ChecklistItemRow
+              key={item.id}
+              item={item}
+              patientId={patient.id}
+              onUpdate={fetchPatient}
+            />
           ))}
         </ul>
       )}

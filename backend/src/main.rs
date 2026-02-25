@@ -70,6 +70,12 @@ async fn main() -> std::io::Result<()> {
                     .route("/{id}", web::get().to(routes::patients::get))
                     .route("/{id}", web::put().to(routes::patients::update)),
             )
+            .service(
+                web::scope("/api/checklists")
+                    .route("/{id}/complete", web::put().to(routes::checklists::complete))
+                    .route("/{id}/uncomplete", web::put().to(routes::checklists::uncomplete))
+                    .route("/{id}/upload", web::post().to(routes::checklists::upload)),
+            )
     })
     .bind("0.0.0.0:8080")?
     .run()

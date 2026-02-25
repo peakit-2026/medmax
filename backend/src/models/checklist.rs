@@ -44,6 +44,15 @@ impl ChecklistItem {
         .await
     }
 
+    pub async fn mark_uncompleted(pool: &PgPool, id: Uuid) -> sqlx::Result<Self> {
+        sqlx::query_as::<_, Self>(
+            "UPDATE checklist_items SET is_completed = false, completed_at = NULL WHERE id = $1 RETURNING *",
+        )
+        .bind(id)
+        .fetch_one(pool)
+        .await
+    }
+
     pub async fn set_file_path(pool: &PgPool, id: Uuid, path: &str) -> sqlx::Result<Self> {
         sqlx::query_as::<_, Self>(
             "UPDATE checklist_items SET file_path = $2 WHERE id = $1 RETURNING *",
