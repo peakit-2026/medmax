@@ -78,6 +78,7 @@ services:
       BIND_ADDR: 0.0.0.0:4433
       CERT_PATH: /app/certs/cert.pem
       KEY_PATH: /app/certs/key.pem
+      JWT_SECRET: ${JWT_SECRET}
     volumes:
       - sfu_certs:/app/certs:ro
     networks:
