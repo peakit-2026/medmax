@@ -8,6 +8,14 @@ interface WebTransportState {
   error: string | null
 }
 
+const AUDIO_CONSTRAINTS = {
+  sampleRate: 48000,
+  channelCount: 1,
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+}
+
 export function useWebTransport(roomId: string) {
   const localVideoRef = useRef<HTMLVideoElement>(null)
   const remoteCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -20,6 +28,8 @@ export function useWebTransport(roomId: string) {
   const audioContextRef = useRef<AudioContext | null>(null)
   const frameCountRef = useRef(0)
   const abortRef = useRef<AbortController | null>(null)
+  const audioTimeRef = useRef(0)
+  const waitingKeyframeRef = useRef(true)
 
   const [state, setState] = useState<WebTransportState>({
     isConnected: false,
@@ -49,6 +59,9 @@ export function useWebTransport(roomId: string) {
 
     transportRef.current?.close()
     transportRef.current = null
+
+    audioTimeRef.current = 0
+    waitingKeyframeRef.current = true
 
     setState((s) => ({ ...s, isConnected: false, error: null }))
   }, [])
@@ -88,13 +101,13 @@ export function useWebTransport(roomId: string) {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { width: 640, height: 480, frameRate: 30 },
-          audio: { sampleRate: 48000, channelCount: 1 },
+          audio: AUDIO_CONSTRAINTS,
         })
         hasVideo = stream.getVideoTracks().length > 0
       } catch {
         stream = await navigator.mediaDevices.getUserMedia({
           video: false,
-          audio: { sampleRate: 48000, channelCount: 1 },
+          audio: AUDIO_CONSTRAINTS,
         })
       }
       streamRef.current = stream
@@ -246,6 +259,7 @@ export function useWebTransport(roomId: string) {
 
       const audioCtx = new AudioContext({ sampleRate: 48000 })
       audioContextRef.current = audioCtx
+      audioTimeRef.current = audioCtx.currentTime
 
       const videoDecoder = new VideoDecoder({
         output: (frame) => {
@@ -260,7 +274,9 @@ export function useWebTransport(roomId: string) {
           }
           frame.close()
         },
-        error: (e) => console.error('VideoDecoder error:', e),
+        error: () => {
+          waitingKeyframeRef.current = true
+        },
       })
 
       videoDecoder.configure({
@@ -271,6 +287,12 @@ export function useWebTransport(roomId: string) {
 
       const audioDecoder = new AudioDecoder({
         output: (audioData) => {
+          const duration = audioData.numberOfFrames / audioData.sampleRate
+          const now = audioCtx.currentTime
+          if (audioTimeRef.current < now) {
+            audioTimeRef.current = now + 0.01
+          }
+
           const buf = audioCtx.createBuffer(
             audioData.numberOfChannels,
             audioData.numberOfFrames,
@@ -284,7 +306,8 @@ export function useWebTransport(roomId: string) {
           const source = audioCtx.createBufferSource()
           source.buffer = buf
           source.connect(audioCtx.destination)
-          source.start()
+          source.start(audioTimeRef.current)
+          audioTimeRef.current += duration
           audioData.close()
         },
         error: (e) => console.error('AudioDecoder error:', e),
@@ -325,12 +348,22 @@ export function useWebTransport(roomId: string) {
             if (pktType === 0x02 && videoDecoder.state === 'configured') {
               const videoData = packet.slice(1 + idLen + 1)
               const isKey = detectKeyframe(videoData)
-              const chunk = new EncodedVideoChunk({
-                type: isKey ? 'key' : 'delta',
-                timestamp: performance.now() * 1000,
-                data: videoData,
-              })
-              videoDecoder.decode(chunk)
+
+              if (waitingKeyframeRef.current) {
+                if (!isKey) continue
+                waitingKeyframeRef.current = false
+              }
+
+              try {
+                const chunk = new EncodedVideoChunk({
+                  type: isKey ? 'key' : 'delta',
+                  timestamp: performance.now() * 1000,
+                  data: videoData,
+                })
+                videoDecoder.decode(chunk)
+              } catch {
+                waitingKeyframeRef.current = true
+              }
             }
           }
         }
@@ -351,12 +384,14 @@ export function useWebTransport(roomId: string) {
           if (pktType === 0x01 && audioDecoder.state === 'configured') {
             const audioData = value.slice(1 + idLen + 1)
             if (audioData.length > 0) {
-              const chunk = new EncodedAudioChunk({
-                type: 'key',
-                timestamp: performance.now() * 1000,
-                data: audioData,
-              })
-              audioDecoder.decode(chunk)
+              try {
+                const chunk = new EncodedAudioChunk({
+                  type: 'key',
+                  timestamp: performance.now() * 1000,
+                  data: audioData,
+                })
+                audioDecoder.decode(chunk)
+              } catch {}
             }
           }
         }
