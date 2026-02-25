@@ -88,6 +88,6 @@ CREATE TABLE telegram_subscriptions (
 );
 
 INSERT INTO users (id, email, password_hash, role, full_name, district, organization) VALUES
-('a0000000-0000-0000-0000-000000000001', 'doctor@demo.ru', '$2b$12$LJ3m4ys3Lk0TSwMCkVcJYOHahGvCMmB.BpZeRmzVXJYNkD6Iqm6Fi', 'doctor', 'Иванов Петр Сергеевич', 'Краснохолмский район', 'ФАП с. Краснохолм'),
-('a0000000-0000-0000-0000-000000000002', 'surgeon@demo.ru', '$2b$12$LJ3m4ys3Lk0TSwMCkVcJYOHahGvCMmB.BpZeRmzVXJYNkD6Iqm6Fi', 'surgeon', 'Смирнова Анна Викторовна', NULL, 'Областной офтальмологический центр'),
-('a0000000-0000-0000-0000-000000000003', 'patient@demo.ru', '$2b$12$LJ3m4ys3Lk0TSwMCkVcJYOHahGvCMmB.BpZeRmzVXJYNkD6Iqm6Fi', 'patient', 'Козлов Михаил Андреевич', NULL, NULL);
+('a0000000-0000-0000-0000-000000000001', 'doctor@demo.ru', '$2b$12$CpiePsgTTYqS1cjrd5a.5.q492bS55MTkFUdVkX5pPImli26XJ46.', 'doctor', 'Иванов Петр Сергеевич', 'Краснохолмский район', 'ФАП с. Краснохолм'),
+('a0000000-0000-0000-0000-000000000002', 'surgeon@demo.ru', '$2b$12$CpiePsgTTYqS1cjrd5a.5.q492bS55MTkFUdVkX5pPImli26XJ46.', 'surgeon', 'Смирнова Анна Викторовна', NULL, 'Областной офтальмологический центр'),
+('a0000000-0000-0000-0000-000000000003', 'patient@demo.ru', '$2b$12$CpiePsgTTYqS1cjrd5a.5.q492bS55MTkFUdVkX5pPImli26XJ46.', 'patient', 'Козлов Михаил Андреевич', NULL, NULL);
