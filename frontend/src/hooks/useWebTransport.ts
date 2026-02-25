@@ -70,10 +70,20 @@ export function useWebTransport(roomId: string) {
       const abort = new AbortController()
       abortRef.current = abort
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, frameRate: 30 },
-        audio: { sampleRate: 48000, channelCount: 1 },
-      })
+      let hasVideo = false
+      let stream: MediaStream
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480, frameRate: 30 },
+          audio: { sampleRate: 48000, channelCount: 1 },
+        })
+        hasVideo = stream.getVideoTracks().length > 0
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: false,
+          audio: { sampleRate: 48000, channelCount: 1 },
+        })
+      }
       streamRef.current = stream
 
       if (localVideoRef.current) {
@@ -83,32 +93,35 @@ export function useWebTransport(roomId: string) {
       const biStream = await transport.createBidirectionalStream()
       const videoWriter = biStream.writable.getWriter()
 
-      const videoEncoder = new VideoEncoder({
-        output: (chunk) => {
-          const buf = new ArrayBuffer(4 + 1 + chunk.byteLength)
-          const view = new DataView(buf)
-          view.setUint32(0, 1 + chunk.byteLength)
-          view.setUint8(4, 0x02)
-          const chunkBuf = new Uint8Array(buf, 5)
-          chunk.copyTo(chunkBuf)
-          videoWriter.write(new Uint8Array(buf)).catch(() => {})
-        },
-        error: (e) => console.error('VideoEncoder error:', e),
-      })
+      if (hasVideo) {
+        const videoEncoder = new VideoEncoder({
+          output: (chunk) => {
+            const buf = new ArrayBuffer(4 + 1 + chunk.byteLength)
+            const view = new DataView(buf)
+            view.setUint32(0, 1 + chunk.byteLength)
+            view.setUint8(4, 0x02)
+            const chunkBuf = new Uint8Array(buf, 5)
+            chunk.copyTo(chunkBuf)
+            videoWriter.write(new Uint8Array(buf)).catch(() => {})
+          },
+          error: (e) => console.error('VideoEncoder error:', e),
+        })
 
-      videoEncoder.configure({
-        codec: 'avc1.42001e',
-        width: 640,
-        height: 480,
-        bitrate: 500_000,
-        framerate: 30,
-        latencyMode: 'realtime',
-        avc: { format: 'annexb' },
-      })
-      videoEncoderRef.current = videoEncoder
+        videoEncoder.configure({
+          codec: 'avc1.42001e',
+          width: 640,
+          height: 480,
+          bitrate: 500_000,
+          framerate: 30,
+          latencyMode: 'realtime',
+          avc: { format: 'annexb' },
+        })
+        videoEncoderRef.current = videoEncoder
+      }
 
       const videoTrack = stream.getVideoTracks()[0]
-      if (videoTrack) {
+      const videoEncoder = videoEncoderRef.current
+      if (videoTrack && videoEncoder) {
         const processor = new MediaStreamTrackProcessor({ track: videoTrack })
         const reader = processor.readable.getReader()
         ;(async () => {
