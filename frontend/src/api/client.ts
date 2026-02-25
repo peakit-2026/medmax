@@ -24,7 +24,7 @@ api.interceptors.response.use(
       )
       return Promise.resolve({ data: { queued: true }, status: 202 })
     }
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config.url?.includes('/auth/login')) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
