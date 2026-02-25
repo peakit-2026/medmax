@@ -24,3 +24,5 @@ image = "0.25"
 printpdf = "0.7"
 rand = "0.8"
 futures-util = "0.3"
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-s3 = "1"

@@ -11,7 +11,8 @@ use sqlx::postgres::PgPoolOptions;
 pub struct AppState {
     pub db: sqlx::PgPool,
     pub jwt_secret: String,
-    pub upload_dir: String,
+    pub s3_client: aws_sdk_s3::Client,
+    pub s3_bucket: String,
 }
 
 async fn health_check() -> HttpResponse {
@@ -27,8 +28,10 @@ async fn main() -> std::io::Result<()> {
         .expect("DATABASE_URL must be set");
     let jwt_secret = std::env::var("JWT_SECRET")
         .expect("JWT_SECRET must be set");
-    let upload_dir = std::env::var("UPLOAD_DIR")
-        .unwrap_or_else(|_| "./uploads".to_string());
+
+    let s3_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
+    let s3_client = aws_sdk_s3::Client::new(&s3_config);
+    let s3_bucket = std::env::var("S3_BUCKET").expect("S3_BUCKET must be set");
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -44,7 +47,8 @@ async fn main() -> std::io::Result<()> {
     let state = AppState {
         db: pool,
         jwt_secret,
-        upload_dir,
+        s3_client,
+        s3_bucket,
     };
 
     log::info!("Starting server at http://0.0.0.0:8080");

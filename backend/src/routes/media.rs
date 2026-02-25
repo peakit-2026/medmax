@@ -1,5 +1,6 @@
 use actix_multipart::Multipart;
 use actix_web::{web, HttpResponse};
+use aws_sdk_s3::primitives::ByteStream;
 use futures_util::StreamExt;
 use uuid::Uuid;
 
@@ -79,17 +80,21 @@ pub async fn upload(
     let file_size = bytes.len() as i64;
     let file_uuid = Uuid::new_v4();
     let stored_name = format!("{}_{}", file_uuid, filename);
-    let dir = format!("{}/media/{}", state.upload_dir, patient_id);
+    let key = format!("media/{}/{}", patient_id, stored_name);
 
-    if std::fs::create_dir_all(&dir).is_err() {
-        return HttpResponse::InternalServerError()
-            .json(serde_json::json!({"error": "Failed to create directory"}));
-    }
+    let put_result = state
+        .s3_client
+        .put_object()
+        .bucket(&state.s3_bucket)
+        .key(&key)
+        .body(ByteStream::from(bytes.clone()))
+        .content_type(&content_type)
+        .send()
+        .await;
 
-    let full_path = format!("{}/{}", dir, stored_name);
-    if std::fs::write(&full_path, &bytes).is_err() {
+    if put_result.is_err() {
         return HttpResponse::InternalServerError()
-            .json(serde_json::json!({"error": "Failed to write file"}));
+            .json(serde_json::json!({"error": "Failed to upload file to S3"}));
     }
 
     if content_type.starts_with("image/") {
@@ -106,19 +111,32 @@ pub async fn upload(
                 new_h,
                 image::imageops::FilterType::Lanczos3,
             );
-            let thumb_path = format!("{}/thumb_{}", dir, stored_name);
-            let _ = thumb.save(&thumb_path);
+            let mut thumb_bytes: Vec<u8> = Vec::new();
+            let encoder = image::codecs::jpeg::JpegEncoder::new(&mut thumb_bytes);
+            if image::DynamicImage::ImageRgba8(thumb)
+                .write_with_encoder(encoder)
+                .is_ok()
+            {
+                let thumb_key = format!("media/{}/thumb_{}", patient_id, stored_name);
+                let _ = state
+                    .s3_client
+                    .put_object()
+                    .bucket(&state.s3_bucket)
+                    .key(&thumb_key)
+                    .body(ByteStream::from(thumb_bytes))
+                    .content_type("image/jpeg")
+                    .send()
+                    .await;
+            }
         }
     }
-
-    let relative_path = format!("media/{}/{}", patient_id, stored_name);
 
     match MediaFile::create(
         &state.db,
         patient_id,
         checklist_item_id,
         &filename,
-        &relative_path,
+        &key,
         &content_type,
         file_size,
         auth.user_id,
@@ -157,13 +175,28 @@ pub async fn serve_file(
         }
     };
 
-    let full_path = format!("{}/{}", state.upload_dir, media.file_path);
-    match std::fs::read(&full_path) {
-        Ok(bytes) => HttpResponse::Ok()
-            .content_type(media.file_type)
-            .body(bytes),
+    let result = state
+        .s3_client
+        .get_object()
+        .bucket(&state.s3_bucket)
+        .key(&media.file_path)
+        .send()
+        .await;
+
+    match result {
+        Ok(output) => {
+            let bytes = output
+                .body
+                .collect()
+                .await
+                .map(|data| data.into_bytes())
+                .unwrap_or_default();
+            HttpResponse::Ok()
+                .content_type(media.file_type)
+                .body(bytes.to_vec())
+        }
         Err(_) => HttpResponse::NotFound()
-            .json(serde_json::json!({"error": "File not found on disk"})),
+            .json(serde_json::json!({"error": "File not found in storage"})),
     }
 }
 
@@ -181,22 +214,53 @@ pub async fn serve_thumb(
     };
 
     let parts: Vec<&str> = media.file_path.rsplitn(2, '/').collect();
-    let thumb_path = if parts.len() == 2 {
-        format!("{}/{}/thumb_{}", state.upload_dir, parts[1], parts[0])
+    let thumb_key = if parts.len() == 2 {
+        format!("{}/thumb_{}", parts[1], parts[0])
     } else {
-        format!("{}/thumb_{}", state.upload_dir, media.file_path)
+        format!("thumb_{}", media.file_path)
     };
 
-    match std::fs::read(&thumb_path) {
-        Ok(bytes) => HttpResponse::Ok()
-            .content_type(media.file_type.clone())
-            .body(bytes),
+    let result = state
+        .s3_client
+        .get_object()
+        .bucket(&state.s3_bucket)
+        .key(&thumb_key)
+        .send()
+        .await;
+
+    match result {
+        Ok(output) => {
+            let bytes = output
+                .body
+                .collect()
+                .await
+                .map(|data| data.into_bytes())
+                .unwrap_or_default();
+            HttpResponse::Ok()
+                .content_type("image/jpeg")
+                .body(bytes.to_vec())
+        }
         Err(_) => {
-            let full_path = format!("{}/{}", state.upload_dir, media.file_path);
-            match std::fs::read(&full_path) {
-                Ok(bytes) => HttpResponse::Ok()
-                    .content_type(media.file_type)
-                    .body(bytes),
+            let result = state
+                .s3_client
+                .get_object()
+                .bucket(&state.s3_bucket)
+                .key(&media.file_path)
+                .send()
+                .await;
+
+            match result {
+                Ok(output) => {
+                    let bytes = output
+                        .body
+                        .collect()
+                        .await
+                        .map(|data| data.into_bytes())
+                        .unwrap_or_default();
+                    HttpResponse::Ok()
+                        .content_type(media.file_type)
+                        .body(bytes.to_vec())
+                }
                 Err(_) => HttpResponse::NotFound()
                     .json(serde_json::json!({"error": "Thumbnail not found"})),
             }
@@ -218,16 +282,27 @@ pub async fn delete(
         }
     };
 
-    let full_path = format!("{}/{}", state.upload_dir, media.file_path);
-    let _ = std::fs::remove_file(&full_path);
+    let _ = state
+        .s3_client
+        .delete_object()
+        .bucket(&state.s3_bucket)
+        .key(&media.file_path)
+        .send()
+        .await;
 
     let parts: Vec<&str> = media.file_path.rsplitn(2, '/').collect();
-    let thumb_path = if parts.len() == 2 {
-        format!("{}/{}/thumb_{}", state.upload_dir, parts[1], parts[0])
+    let thumb_key = if parts.len() == 2 {
+        format!("{}/thumb_{}", parts[1], parts[0])
     } else {
-        format!("{}/thumb_{}", state.upload_dir, media.file_path)
+        format!("thumb_{}", media.file_path)
     };
-    let _ = std::fs::remove_file(&thumb_path);
+    let _ = state
+        .s3_client
+        .delete_object()
+        .bucket(&state.s3_bucket)
+        .key(&thumb_key)
+        .send()
+        .await;
 
     match MediaFile::delete(&state.db, id).await {
         Ok(_) => HttpResponse::Ok().json(serde_json::json!({"ok": true})),

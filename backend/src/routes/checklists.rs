@@ -1,5 +1,6 @@
 use actix_multipart::Multipart;
 use actix_web::{web, HttpResponse};
+use aws_sdk_s3::primitives::ByteStream;
 use futures_util::StreamExt;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -67,25 +68,29 @@ pub async fn upload(
             .and_then(|cd| cd.get_filename().map(|s| s.to_string()))
             .unwrap_or_else(|| "file".to_string());
 
-        let dir = format!("{}/{}", state.upload_dir, item.patient_id);
-        if let Err(_) = std::fs::create_dir_all(&dir) {
-            return HttpResponse::InternalServerError()
-                .json(serde_json::json!({"error": "Failed to create upload directory"}));
-        }
-
-        let filepath = format!("{}/{}", dir, filename);
         let mut bytes = Vec::new();
         while let Some(Ok(chunk)) = field.next().await {
             bytes.extend_from_slice(&chunk);
         }
 
-        if let Err(_) = std::fs::write(&filepath, &bytes) {
+        let file_uuid = Uuid::new_v4();
+        let key = format!("checklists/{}/{}_{}", item.patient_id, file_uuid, filename);
+
+        let put_result = state
+            .s3_client
+            .put_object()
+            .bucket(&state.s3_bucket)
+            .key(&key)
+            .body(ByteStream::from(bytes))
+            .send()
+            .await;
+
+        if put_result.is_err() {
             return HttpResponse::InternalServerError()
-                .json(serde_json::json!({"error": "Failed to write file"}));
+                .json(serde_json::json!({"error": "Failed to upload file to S3"}));
         }
 
-        let relative_path = format!("{}/{}", item.patient_id, filename);
-        let _ = ChecklistItem::set_file_path(&state.db, id, &relative_path).await;
+        let _ = ChecklistItem::set_file_path(&state.db, id, &key).await;
         let updated = match ChecklistItem::mark_completed(&state.db, id).await {
             Ok(item) => item,
             Err(_) => return HttpResponse::InternalServerError()
