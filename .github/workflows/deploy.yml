@@ -56,8 +56,6 @@ jobs:
           file: backend/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend:latest
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend:cache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend:cache,mode=max
 
   build-frontend:
     needs: changes
@@ -81,8 +79,6 @@ jobs:
           file: frontend/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:latest
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:cache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:cache,mode=max
 
   build-sfu:
     needs: changes
@@ -106,8 +102,6 @@ jobs:
           file: sfu/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/sfu:latest
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/sfu:cache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/sfu:cache,mode=max
 
   deploy:
     needs: [changes, build-backend, build-frontend, build-sfu]
