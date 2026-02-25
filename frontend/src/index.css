@@ -49,24 +49,34 @@
   --color-primary-52: rgba(0, 122, 255, 0.52);
   --color-primary-32: rgba(0, 122, 255, 0.32);
 
-  --color-danger: #ff362e;
-  --color-danger-72: rgba(255, 54, 46, 0.72);
-  --color-danger-52: rgba(255, 54, 46, 0.52);
+  --color-accent-blue: #3e87ff;
+  --color-accent-red: #ff3b30;
+  --color-accent-yellow: #ffd000;
+  --color-accent-green: #34c759;
 
-  --color-warning: #ffa300;
-  --color-warning-72: rgba(255, 163, 0, 0.72);
-  --color-warning-52: rgba(255, 163, 0, 0.52);
+  --color-danger: #ff3b30;
+  --color-danger-72: rgba(255, 59, 48, 0.72);
+  --color-danger-52: rgba(255, 59, 48, 0.52);
+  --color-danger-12: rgba(255, 59, 48, 0.12);
 
-  --color-success: #1acf57;
-  --color-success-72: rgba(26, 207, 87, 0.72);
-  --color-success-52: rgba(26, 207, 87, 0.52);
+  --color-warning: #ffd000;
+  --color-warning-72: rgba(255, 208, 0, 0.72);
+  --color-warning-52: rgba(255, 208, 0, 0.52);
 
-  --color-dark: #0f0f12;
+  --color-success: #34c759;
+  --color-success-72: rgba(52, 199, 89, 0.72);
+  --color-success-52: rgba(52, 199, 89, 0.52);
+
+  --color-dark: #101012;
   --color-surface: #ffffff;
-  --color-surface-secondary: #f5f5f7;
-  --color-border: rgba(0, 0, 0, 0.08);
-  --color-text: #0f0f12;
-  --color-text-secondary: rgba(15, 15, 18, 0.52);
+  --color-surface-secondary: #f7f8fa;
+  --color-border: rgba(120, 120, 128, 0.16);
+  --color-fill-tertiary: rgba(120, 120, 128, 0.12);
+  --color-fill-quaternary: rgba(120, 120, 128, 0.08);
+  --color-text: #101012;
+  --color-text-secondary: rgba(60, 60, 67, 0.72);
+  --color-text-tertiary: rgba(60, 60, 67, 0.52);
+  --color-text-disabled: rgba(60, 60, 67, 0.36);
 }
 
 * {
@@ -89,4 +99,39 @@ input::placeholder {
 
 input:focus {
   border-color: rgba(120, 120, 128, 0.36);
+}
+
+.drawer-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.drawer-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.drawer-scroll::-webkit-scrollbar-thumb {
+  background: rgba(120, 120, 128, 0.2);
+  border-radius: 9999px;
+}
+
+.drawer-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 120, 128, 0.2) transparent;
+}
+
+/* Hide native date picker icon so we use our own */
+.edit-field-input::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.edit-field-input::-webkit-inner-spin-button,
+.edit-field-input::-webkit-clear-button {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.edit-field-input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
 }

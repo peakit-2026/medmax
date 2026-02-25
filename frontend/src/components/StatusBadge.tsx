@@ -1,19 +1,38 @@
-const labels: Record<string, string> = {
-  red: 'Требуется консультация',
-  yellow: 'Идет подготовка',
-  green: 'Готов к операции',
+import type { DisplayStatus } from '../types'
+
+const config: Record<DisplayStatus, { label: string; bgColor: string; textColor: string }> = {
+  red: {
+    label: 'Требует внимания',
+    bgColor: '#FF3B30',
+    textColor: '#FFFFFF',
+  },
+  yellow: {
+    label: 'В подготовке',
+    bgColor: '#FFD000',
+    textColor: '#101012',
+  },
+  green: {
+    label: 'Готов к операции',
+    bgColor: '#34C759',
+    textColor: '#FFFFFF',
+  },
+  date_set: {
+    label: 'Назначена дата',
+    bgColor: '#3E87FF',
+    textColor: '#FFFFFF',
+  },
 }
 
-const colors: Record<string, string> = {
-  red: 'bg-red-100 text-red-800',
-  yellow: 'bg-amber-100 text-amber-800',
-  green: 'bg-green-100 text-green-800',
-}
+function StatusBadge({ status }: { status: DisplayStatus }) {
+  const c = config[status]
+  if (!c) return null
 
-function StatusBadge({ status }: { status: string }) {
   return (
-    <span className={`px-2 py-1 rounded text-sm ${colors[status] ?? ''}`}>
-      {labels[status] ?? status}
+    <span
+      className="inline-flex items-center justify-center rounded-full text-[13px] font-medium leading-[13px] whitespace-nowrap"
+      style={{ backgroundColor: c.bgColor, color: c.textColor, padding: '6px 12px' }}
+    >
+      {c.label}
     </span>
   )
 }

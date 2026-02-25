@@ -46,7 +46,7 @@ function IOLCalculator() {
   }
 
   return (
-    <div>
+    <div style={{ padding: '36px 24px' }}>
       <Link to={`/doctor/patient/${id}`} className="text-blue-600 hover:text-blue-700 mb-4 inline-block text-sm">
         &larr; К карте пациента
       </Link>

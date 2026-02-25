@@ -39,6 +39,7 @@ export interface Comment {
   id: string
   patient_id: string
   author_id: string
+  author_name: string
   content: string
   created_at: string
 }
@@ -65,4 +66,43 @@ export interface MediaFile {
   file_type: string
   file_size: number
   created_at: string
+}
+
+export type DisplayStatus = 'red' | 'yellow' | 'green' | 'date_set'
+
+export interface LastAction {
+  text: string
+  date: string
+}
+
+export function shortenName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/)
+  if (parts.length <= 1) return fullName
+  const surname = parts[0]
+  const initials = parts.slice(1).map((p) => p[0].toUpperCase() + '.').join(' ')
+  return `${surname} ${initials}`
+}
+
+export function getDisplayStatus(patient: Patient): DisplayStatus {
+  if (patient.status === 'green' && patient.operation_date) return 'date_set'
+  return patient.status
+}
+
+export function getLastAction(patient: Patient): LastAction {
+  const d = new Date(patient.updated_at)
+  const date = d.toLocaleDateString('ru-RU')
+  const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  const dateTime = `${date} в ${time}`
+  switch (patient.status) {
+    case 'red':
+      return { text: 'Требуется консультация', date: dateTime }
+    case 'yellow':
+      return { text: 'Документы на проверке', date: dateTime }
+    case 'green':
+      return patient.operation_date
+        ? { text: `Дата операции: ${new Date(patient.operation_date).toLocaleDateString('ru-RU')}`, date: dateTime }
+        : { text: 'Одобрен хирургом', date: dateTime }
+    default:
+      return { text: 'Обновлено', date: dateTime }
+  }
 }

@@ -5,8 +5,6 @@ import LoginPage from './pages/LoginPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import DoctorDashboard from './pages/doctor/DoctorDashboard'
-import NewPatientForm from './pages/doctor/NewPatientForm'
-import PatientCard from './pages/doctor/PatientCard'
 import IOLCalculator from './pages/doctor/IOLCalculator'
 import SurgeonDashboard from './pages/surgeon/SurgeonDashboard'
 import PatientReview from './pages/surgeon/PatientReview'
@@ -29,8 +27,8 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
           <Route element={<Layout />}>
             <Route path="/doctor" element={<DoctorDashboard />} />
-            <Route path="/doctor/new" element={<NewPatientForm />} />
-            <Route path="/doctor/patient/:id" element={<PatientCard />} />
+            <Route path="/doctor/new" element={<Navigate to="/doctor" replace />} />
+            <Route path="/doctor/patient/:id" element={<Navigate to="/doctor" replace />} />
             <Route path="/doctor/patient/:id/iol" element={<IOLCalculator />} />
           </Route>
         </Route>

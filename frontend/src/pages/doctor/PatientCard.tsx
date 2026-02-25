@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../../api/client'
 import StatusBadge from '../../components/StatusBadge'
+import { getDisplayStatus } from '../../types'
 import ChecklistItemRow from '../../components/ChecklistItemRow'
 import MediaGallery from '../../components/MediaGallery'
 import VideoCall from '../../components/VideoCall'
@@ -21,7 +22,7 @@ function PatientCard() {
   if (!patient) return <div className="text-gray-500">Загрузка...</div>
 
   return (
-    <div>
+    <div style={{ padding: '36px 24px' }}>
       <Link
         to="/doctor"
         onMouseEnter={() => fetchPatients()}
@@ -78,7 +79,7 @@ function PatientCard() {
 
           <span className="text-gray-500 text-sm">Статус:</span>
           <span>
-            <StatusBadge status={patient.status} />
+            <StatusBadge status={getDisplayStatus(patient)} />
           </span>
 
           <span className="text-gray-500 text-sm">Код доступа:</span>

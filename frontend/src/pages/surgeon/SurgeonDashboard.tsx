@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import StatusBadge from '../../components/StatusBadge'
+import { getDisplayStatus } from '../../types'
 import { usePatientStore } from '../../store/patients'
 
 type Filter = 'all' | 'yellow' | 'red' | 'green'
@@ -28,7 +29,7 @@ function SurgeonDashboard() {
   const greenCount = patients.filter((p) => p.status === 'green').length
 
   return (
-    <div>
+    <div style={{ padding: '36px 24px' }}>
       <h1 className="text-2xl font-bold mb-6">Кабинет хирурга</h1>
 
       <div className="flex gap-2 mb-6 flex-wrap">
@@ -88,7 +89,7 @@ function SurgeonDashboard() {
                 <td className="px-4 py-3 text-sm text-gray-600">{p.diagnosis_text}</td>
                 <td className="px-4 py-3 text-sm">{p.operation_type}</td>
                 <td className="px-4 py-3">
-                  <StatusBadge status={p.status} />
+                  <StatusBadge status={getDisplayStatus(p)} />
                 </td>
               </tr>
             ))}

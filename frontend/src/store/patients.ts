@@ -25,6 +25,7 @@ interface PatientState {
   addComment: (patientId: string, content: string) => Promise<void>
   approvePatient: (id: string, operationDate: string | null) => Promise<void>
   rejectPatient: (id: string, comment: string) => Promise<void>
+  updatePatient: (id: string, data: Record<string, unknown>) => Promise<void>
   deleteMedia: (mediaId: string, patientId: string) => Promise<void>
   addIolCalc: (patientId: string, calc: IolCalculation) => void
   addMediaFile: (patientId: string, file: MediaFile) => void
@@ -122,6 +123,7 @@ export const usePatientStore = create<PatientState>((set, get) => ({
       id: tempId,
       patient_id: patientId,
       author_id: '',
+      author_name: '',
       content,
       created_at: new Date().toISOString(),
     }
@@ -192,6 +194,17 @@ export const usePatientStore = create<PatientState>((set, get) => ({
         })
       }
     }
+  },
+
+  updatePatient: async (id, data) => {
+    const { data: updated } = await api.put<Patient>(`/patients/${id}`, data)
+    const existing = get().patients[id]
+    if (existing) {
+      set({ patients: { ...get().patients, [id]: { ...existing, ...updated } } })
+    }
+    set({
+      patientList: get().patientList.map((p) => (p.id === id ? { ...p, ...updated } : p)),
+    })
   },
 
   deleteMedia: async (mediaId, patientId) => {

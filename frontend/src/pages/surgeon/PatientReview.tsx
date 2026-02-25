@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import StatusBadge from '../../components/StatusBadge'
+import { getDisplayStatus } from '../../types'
 import MediaGallery from '../../components/MediaGallery'
 import VideoCall from '../../components/VideoCall'
 import { usePatientStore, selectComments, selectIolCalcs } from '../../store/patients'
@@ -70,7 +71,7 @@ function PatientReview() {
   const totalCount = patient.checklist.length
 
   return (
-    <div>
+    <div style={{ padding: '36px 24px' }}>
       <Link
         to="/surgeon"
         onMouseEnter={() => fetchPatients()}
@@ -113,7 +114,7 @@ function PatientReview() {
 
           <span className="text-gray-500 text-sm">Статус:</span>
           <span>
-            <StatusBadge status={patient.status} />
+            <StatusBadge status={getDisplayStatus(patient)} />
           </span>
 
           <span className="text-gray-500 text-sm">Дата операции:</span>
