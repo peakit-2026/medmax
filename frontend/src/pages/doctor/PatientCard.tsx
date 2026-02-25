@@ -1,35 +1,32 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../../api/client'
 import StatusBadge from '../../components/StatusBadge'
 import ChecklistItemRow from '../../components/ChecklistItemRow'
 import MediaGallery from '../../components/MediaGallery'
 import VideoCall from '../../components/VideoCall'
-import type { PatientWithChecklist } from '../../types/index'
+import { usePatientStore } from '../../store/patients'
 
 function PatientCard() {
   const { id } = useParams()
-  const [patient, setPatient] = useState<PatientWithChecklist | null>(null)
-  const [loading, setLoading] = useState(true)
+  const patient = usePatientStore((s) => s.patients.get(id!))
+  const fetchPatient = usePatientStore((s) => s.fetchPatient)
+  const fetchPatients = usePatientStore((s) => s.fetchPatients)
   const [showVideo, setShowVideo] = useState(false)
 
-  const fetchPatient = useCallback(() => {
-    api.get<PatientWithChecklist>(`/patients/${id}`).then((res) => {
-      setPatient(res.data)
-      setLoading(false)
-    })
+  useEffect(() => {
+    fetchPatient(id!)
   }, [id])
 
-  useEffect(() => {
-    fetchPatient()
-  }, [fetchPatient])
-
-  if (loading) return <div className="text-gray-500">Загрузка...</div>
-  if (!patient) return <div className="text-red-600">Пациент не найден</div>
+  if (!patient) return <div className="text-gray-500">Загрузка...</div>
 
   return (
     <div>
-      <Link to="/doctor" className="text-blue-600 hover:text-blue-700 mb-4 inline-block text-sm">
+      <Link
+        to="/doctor"
+        onMouseEnter={() => fetchPatients()}
+        className="text-blue-600 hover:text-blue-700 mb-4 inline-block text-sm"
+      >
         &larr; К списку пациентов
       </Link>
 
@@ -111,7 +108,6 @@ function PatientCard() {
                 key={item.id}
                 item={item}
                 patientId={patient.id}
-                onUpdate={fetchPatient}
               />
             ))}
           </ul>

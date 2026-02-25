@@ -1,29 +1,21 @@
 import { useState, useRef } from 'react'
 import api from '../api/client'
+import { usePatientStore } from '../store/patients'
 import type { ChecklistItem } from '../types/index'
 
 interface Props {
   item: ChecklistItem
   patientId: string
-  onUpdate: () => void
 }
 
-function ChecklistItemRow({ item, patientId, onUpdate }: Props) {
+function ChecklistItemRow({ item, patientId }: Props) {
   const [loading, setLoading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const toggleChecklist = usePatientStore((s) => s.toggleChecklist)
+  const fetchPatient = usePatientStore((s) => s.fetchPatient)
 
-  const toggleComplete = async () => {
-    setLoading(true)
-    try {
-      if (item.is_completed) {
-        await api.put(`/checklists/${item.id}/uncomplete`)
-      } else {
-        await api.put(`/checklists/${item.id}/complete`)
-      }
-      onUpdate()
-    } finally {
-      setLoading(false)
-    }
+  const toggleComplete = () => {
+    toggleChecklist(item.id, patientId, item.is_completed)
   }
 
   const handleFileChange = async (e: React.SyntheticEvent<HTMLInputElement>) => {
@@ -37,7 +29,7 @@ function ChecklistItemRow({ item, patientId, onUpdate }: Props) {
       await api.post(`/checklists/${item.id}/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      onUpdate()
+      fetchPatient(patientId)
     } finally {
       setLoading(false)
       if (fileRef.current) fileRef.current.value = ''

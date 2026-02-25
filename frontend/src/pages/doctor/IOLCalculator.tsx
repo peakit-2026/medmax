@@ -1,23 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../../api/client'
-
-interface IolCalculation {
-  id: string
-  patient_id: string
-  eye: string
-  k1: number
-  k2: number
-  axial_length: number
-  acd: number
-  target_refraction: number
-  formula: string
-  recommended_iol: number
-  created_at: string
-}
+import { usePatientStore } from '../../store/patients'
+import type { IolCalculation } from '../../types/index'
 
 function IOLCalculator() {
   const { id } = useParams()
+  const history = usePatientStore((s) => s.iolCalcs.get(id!) || [])
+  const fetchIol = usePatientStore((s) => s.fetchIol)
+  const addIolCalc = usePatientStore((s) => s.addIolCalc)
   const [eye, setEye] = useState('right')
   const [k1, setK1] = useState('')
   const [k2, setK2] = useState('')
@@ -27,12 +18,9 @@ function IOLCalculator() {
   const [formula, setFormula] = useState('srk_t')
   const [result, setResult] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
-  const [history, setHistory] = useState<IolCalculation[]>([])
 
   useEffect(() => {
-    api.get<IolCalculation[]>(`/iol/patient/${id}`).then((res) => {
-      setHistory(res.data)
-    })
+    fetchIol(id!)
   }, [id])
 
   const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
@@ -52,7 +40,7 @@ function IOLCalculator() {
       })
       .then((res) => {
         setResult(res.data.recommended_iol)
-        setHistory((prev) => [res.data, ...prev])
+        addIolCalc(id!, res.data)
       })
       .finally(() => setLoading(false))
   }

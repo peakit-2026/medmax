@@ -42,3 +42,27 @@ export interface Comment {
   content: string
   created_at: string
 }
+
+export interface IolCalculation {
+  id: string
+  patient_id: string
+  eye: string
+  k1: number
+  k2: number
+  axial_length: number
+  acd: number
+  target_refraction: number
+  formula: string
+  recommended_iol: number
+  created_at: string
+}
+
+export interface MediaFile {
+  id: string
+  patient_id: string
+  file_name: string
+  file_path: string
+  file_type: string
+  file_size: number
+  created_at: string
+}

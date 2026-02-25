@@ -1,32 +1,24 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import api from '../../api/client'
 import StatusBadge from '../../components/StatusBadge'
 import MediaGallery from '../../components/MediaGallery'
 import VideoCall from '../../components/VideoCall'
-import type { PatientWithChecklist, Comment } from '../../types/index'
-
-interface IolCalculation {
-  id: string
-  patient_id: string
-  eye: string
-  k1: number
-  k2: number
-  axial_length: number
-  acd: number
-  target_refraction: number
-  formula: string
-  recommended_iol: number
-  created_at: string
-}
+import { usePatientStore } from '../../store/patients'
 
 function PatientReview() {
   const { id } = useParams()
-  const [patient, setPatient] = useState<PatientWithChecklist | null>(null)
-  const [comments, setComments] = useState<Comment[]>([])
-  const [iolCalcs, setIolCalcs] = useState<IolCalculation[]>([])
+  const patient = usePatientStore((s) => s.patients.get(id!))
+  const comments = usePatientStore((s) => s.comments.get(id!) || [])
+  const iolCalcs = usePatientStore((s) => s.iolCalcs.get(id!) || [])
+  const fetchPatient = usePatientStore((s) => s.fetchPatient)
+  const fetchComments = usePatientStore((s) => s.fetchComments)
+  const fetchIol = usePatientStore((s) => s.fetchIol)
+  const fetchPatients = usePatientStore((s) => s.fetchPatients)
+  const addComment = usePatientStore((s) => s.addComment)
+  const approvePatient = usePatientStore((s) => s.approvePatient)
+  const rejectPatient = usePatientStore((s) => s.rejectPatient)
+
   const [newComment, setNewComment] = useState('')
-  const [loading, setLoading] = useState(true)
   const [showApproveForm, setShowApproveForm] = useState(false)
   const [operationDate, setOperationDate] = useState('')
   const [rejectComment, setRejectComment] = useState('')
@@ -34,79 +26,56 @@ function PatientReview() {
   const [submitting, setSubmitting] = useState(false)
   const [showVideo, setShowVideo] = useState(false)
 
-  const fetchPatient = useCallback(() => {
-    api.get<PatientWithChecklist>(`/patients/${id}`).then((res) => {
-      setPatient(res.data)
-      setLoading(false)
-    })
-  }, [id])
-
-  const fetchComments = useCallback(() => {
-    api.get<Comment[]>(`/comments/patient/${id}`).then((res) => {
-      setComments(res.data)
-    })
-  }, [id])
-
-  const fetchIol = useCallback(() => {
-    api.get<IolCalculation[]>(`/iol/patient/${id}`).then((res) => {
-      setIolCalcs(res.data)
-    })
-  }, [id])
-
   useEffect(() => {
-    fetchPatient()
-    fetchComments()
-    fetchIol()
-  }, [fetchPatient, fetchComments, fetchIol])
+    fetchPatient(id!)
+    fetchComments(id!)
+    fetchIol(id!)
+  }, [id])
 
   const handleAddComment = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!newComment.trim()) return
-    api.post('/comments', { patient_id: id, content: newComment }).then(() => {
-      setNewComment('')
-      fetchComments()
-    })
+    addComment(id!, newComment)
+    setNewComment('')
   }
 
-  const handleApprove = (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleApprove = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     setSubmitting(true)
-    api
-      .post(`/surgeon/patients/${id}/approve`, {
-        operation_date: operationDate || null,
-      })
-      .then(() => {
-        setShowApproveForm(false)
-        setOperationDate('')
-        fetchPatient()
-      })
-      .finally(() => setSubmitting(false))
+    try {
+      await approvePatient(id!, operationDate || null)
+      setShowApproveForm(false)
+      setOperationDate('')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleReject = (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleReject = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!rejectComment.trim()) return
     setSubmitting(true)
-    api
-      .post(`/surgeon/patients/${id}/reject`, { comment: rejectComment })
-      .then(() => {
-        setShowRejectForm(false)
-        setRejectComment('')
-        fetchPatient()
-        fetchComments()
-      })
-      .finally(() => setSubmitting(false))
+    try {
+      await rejectPatient(id!, rejectComment)
+      setShowRejectForm(false)
+      setRejectComment('')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  if (loading) return <div className="text-gray-500">Загрузка...</div>
-  if (!patient) return <div className="text-red-600">Пациент не найден</div>
+  if (!patient) return <div className="text-gray-500">Загрузка...</div>
 
   const completedCount = patient.checklist.filter((c) => c.is_completed).length
   const totalCount = patient.checklist.length
 
   return (
     <div>
-      <Link to="/surgeon" className="text-blue-600 hover:text-blue-700 mb-4 inline-block text-sm">
+      <Link
+        to="/surgeon"
+        onMouseEnter={() => fetchPatients()}
+        className="text-blue-600 hover:text-blue-700 mb-4 inline-block text-sm"
+      >
         &larr; К списку пациентов
       </Link>
 

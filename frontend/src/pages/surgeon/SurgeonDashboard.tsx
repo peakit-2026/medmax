@@ -1,23 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../../api/client'
 import StatusBadge from '../../components/StatusBadge'
-import type { Patient } from '../../types/index'
+import { usePatientStore } from '../../store/patients'
 
 type Filter = 'all' | 'yellow' | 'red' | 'green'
 
 function SurgeonDashboard() {
-  const [patients, setPatients] = useState<Patient[]>([])
+  const patients = usePatientStore((s) => s.patientList)
+  const fetchPatients = usePatientStore((s) => s.fetchPatients)
+  const fetchPatient = usePatientStore((s) => s.fetchPatient)
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
   useEffect(() => {
-    api.get<Patient[]>('/patients').then((res) => {
-      setPatients(res.data)
-      setLoading(false)
-    })
+    fetchPatients()
   }, [])
 
   const filtered = patients.filter((p) => {
@@ -29,8 +26,6 @@ function SurgeonDashboard() {
   const yellowCount = patients.filter((p) => p.status === 'yellow').length
   const redCount = patients.filter((p) => p.status === 'red').length
   const greenCount = patients.filter((p) => p.status === 'green').length
-
-  if (loading) return <div className="text-gray-500">Загрузка...</div>
 
   return (
     <div>
@@ -86,6 +81,7 @@ function SurgeonDashboard() {
               <tr
                 key={p.id}
                 onClick={() => navigate(`/surgeon/patient/${p.id}`)}
+                onMouseEnter={() => fetchPatient(p.id)}
                 className="border-b cursor-pointer hover:bg-gray-50"
               >
                 <td className="px-4 py-3">{p.full_name}</td>

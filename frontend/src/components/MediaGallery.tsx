@@ -1,36 +1,24 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../api/client'
 import { compressImage } from '../hooks/useImageCompression'
+import { usePatientStore } from '../store/patients'
 import ImageViewer from './ImageViewer'
-
-interface MediaFile {
-  id: string
-  patient_id: string
-  file_name: string
-  file_path: string
-  file_type: string
-  file_size: number
-  created_at: string
-}
 
 interface Props {
   patientId: string
 }
 
 function MediaGallery({ patientId }: Props) {
-  const [files, setFiles] = useState<MediaFile[]>([])
+  const files = usePatientStore((s) => s.media.get(patientId) || [])
+  const fetchMedia = usePatientStore((s) => s.fetchMedia)
+  const deleteMedia = usePatientStore((s) => s.deleteMedia)
+  const addMediaFile = usePatientStore((s) => s.addMediaFile)
   const [viewerSrc, setViewerSrc] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const fetchFiles = () => {
-    api.get<MediaFile[]>(`/media/patient/${patientId}`).then((res) => {
-      setFiles(res.data)
-    })
-  }
-
   useEffect(() => {
-    fetchFiles()
+    fetchMedia(patientId)
   }, [patientId])
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,19 +30,18 @@ function MediaGallery({ patientId }: Props) {
       const formData = new FormData()
       formData.append('patient_id', patientId)
       formData.append('file', compressed, file.name)
-      await api.post('/media/upload', formData, {
+      const { data } = await api.post('/media/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      fetchFiles()
+      addMediaFile(patientId, data)
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ''
     }
   }
 
-  const handleDelete = async (id: string) => {
-    await api.delete(`/media/${id}`)
-    fetchFiles()
+  const handleDelete = (id: string) => {
+    deleteMedia(id, patientId)
   }
 
   return (

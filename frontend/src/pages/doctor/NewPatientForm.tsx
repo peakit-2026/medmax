@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../../api/client'
-import type { Patient } from '../../types/index'
+import { usePatientStore } from '../../store/patients'
 
 const operationTypes = [
   'Факоэмульсификация',
@@ -12,6 +11,7 @@ const operationTypes = [
 
 function NewPatientForm() {
   const navigate = useNavigate()
+  const createPatient = usePatientStore((s) => s.createPatient)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [fullName, setFullName] = useState('')
@@ -28,7 +28,7 @@ function NewPatientForm() {
     setError('')
     setLoading(true)
     try {
-      const { data } = await api.post<Patient>('/patients', {
+      const patient = await createPatient({
         full_name: fullName,
         birth_date: birthDate,
         snils: snils || undefined,
@@ -38,7 +38,7 @@ function NewPatientForm() {
         operation_type: operationType,
         notes: notes || undefined,
       })
-      navigate(`/doctor/patient/${data.id}`)
+      navigate(`/doctor/patient/${patient.id}`)
     } catch {
       setError('Ошибка при создании пациента')
     } finally {
