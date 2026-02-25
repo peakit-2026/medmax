@@ -29,7 +29,11 @@ async fn main() -> std::io::Result<()> {
     let jwt_secret = std::env::var("JWT_SECRET")
         .expect("JWT_SECRET must be set");
 
-    let s3_config = aws_config::load_defaults(aws_config::BehaviorVersion::latest()).await;
+    let mut s3_config_loader = aws_config::defaults(aws_config::BehaviorVersion::latest());
+    if let Ok(endpoint) = std::env::var("AWS_ENDPOINT_URL") {
+        s3_config_loader = s3_config_loader.endpoint_url(&endpoint);
+    }
+    let s3_config = s3_config_loader.load().await;
     let s3_client = aws_sdk_s3::Client::new(&s3_config);
     let s3_bucket = std::env::var("S3_BUCKET").expect("S3_BUCKET must be set");
 
