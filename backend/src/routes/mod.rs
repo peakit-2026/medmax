@@ -5,3 +5,4 @@ pub mod media;
 pub mod patients;
 pub mod print;
 pub mod surgeon;
+pub mod videochat;

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import api from '../../api/client'
 import StatusBadge from '../../components/StatusBadge'
 import MediaGallery from '../../components/MediaGallery'
+import VideoCall from '../../components/VideoCall'
 import type { PatientWithChecklist, Comment } from '../../types/index'
 
 interface IolCalculation {
@@ -31,6 +32,7 @@ function PatientReview() {
   const [rejectComment, setRejectComment] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [showVideo, setShowVideo] = useState(false)
 
   const fetchPatient = useCallback(() => {
     api.get<PatientWithChecklist>(`/patients/${id}`).then((res) => {
@@ -108,7 +110,17 @@ function PatientReview() {
         &larr; К списку пациентов
       </Link>
 
-      <h1 className="text-xl font-semibold mb-4">{patient.full_name}</h1>
+      <div className="flex items-center gap-4 mb-4">
+        <h1 className="text-xl font-semibold">{patient.full_name}</h1>
+        <button
+          onClick={() => setShowVideo(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
+        >
+          Видеоконсультация
+        </button>
+      </div>
+
+      {showVideo && <VideoCall roomId={patient.id} onClose={() => setShowVideo(false)} />}
 
       <div className="grid grid-cols-2 gap-2 mb-6 max-w-lg">
         <span className="text-gray-600">Дата рождения:</span>

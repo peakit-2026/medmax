@@ -4,12 +4,14 @@ import api from '../../api/client'
 import StatusBadge from '../../components/StatusBadge'
 import ChecklistItemRow from '../../components/ChecklistItemRow'
 import MediaGallery from '../../components/MediaGallery'
+import VideoCall from '../../components/VideoCall'
 import type { PatientWithChecklist } from '../../types/index'
 
 function PatientCard() {
   const { id } = useParams()
   const [patient, setPatient] = useState<PatientWithChecklist | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showVideo, setShowVideo] = useState(false)
 
   const fetchPatient = useCallback(() => {
     api.get<PatientWithChecklist>(`/patients/${id}`).then((res) => {
@@ -41,7 +43,15 @@ function PatientCard() {
         >
           Скачать маршрутный лист
         </a>
+        <button
+          onClick={() => setShowVideo(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
+        >
+          Видеоконсультация
+        </button>
       </div>
+
+      {showVideo && <VideoCall roomId={patient.id} onClose={() => setShowVideo(false)} />}
 
       <div className="grid grid-cols-2 gap-2 mb-6 max-w-lg">
         <span className="text-gray-600">Дата рождения:</span>

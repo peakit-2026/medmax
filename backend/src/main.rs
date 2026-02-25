@@ -56,6 +56,8 @@ async fn main() -> std::io::Result<()> {
         services::telegram::start_bot(bot_pool).await;
     });
 
+    let rooms = web::Data::new(routes::videochat::create_rooms());
+
     log::info!("Starting server at http://0.0.0.0:8080");
 
     HttpServer::new(move || {
@@ -64,6 +66,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(cors)
             .app_data(web::Data::new(state.clone()))
+            .app_data(rooms.clone())
             .route("/api/health", web::get().to(health_check))
             .service(
                 web::scope("/api/auth")
@@ -109,6 +112,7 @@ async fn main() -> std::io::Result<()> {
                     .route("", web::post().to(routes::surgeon::create_comment))
                     .route("/patient/{patient_id}", web::get().to(routes::surgeon::list_comments)),
             )
+            .route("/api/videochat/{room_id}", web::get().to(routes::videochat::ws_handler))
     })
     .bind("0.0.0.0:8080")?
     .run()
