@@ -93,6 +93,16 @@ async fn main() -> std::io::Result<()> {
                     .route("/calculate", web::post().to(routes::iol::calculate))
                     .route("/patient/{patient_id}", web::get().to(routes::iol::list_by_patient)),
             )
+            .service(
+                web::scope("/api/surgeon")
+                    .route("/patients/{id}/approve", web::post().to(routes::surgeon::approve))
+                    .route("/patients/{id}/reject", web::post().to(routes::surgeon::reject)),
+            )
+            .service(
+                web::scope("/api/comments")
+                    .route("", web::post().to(routes::surgeon::create_comment))
+                    .route("/patient/{patient_id}", web::get().to(routes::surgeon::list_comments)),
+            )
     })
     .bind("0.0.0.0:8080")?
     .run()

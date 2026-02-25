@@ -8,10 +8,8 @@ import DoctorDashboard from './pages/doctor/DoctorDashboard'
 import NewPatientForm from './pages/doctor/NewPatientForm'
 import PatientCard from './pages/doctor/PatientCard'
 import IOLCalculator from './pages/doctor/IOLCalculator'
-
-function SurgeonDashboard() {
-  return <div>Surgeon Dashboard (coming soon)</div>
-}
+import SurgeonDashboard from './pages/surgeon/SurgeonDashboard'
+import PatientReview from './pages/surgeon/PatientReview'
 
 function PatientLookup() {
   return <div>Patient Lookup (coming soon)</div>
@@ -40,6 +38,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['surgeon']} />}>
           <Route element={<Layout />}>
             <Route path="/surgeon" element={<SurgeonDashboard />} />
+            <Route path="/surgeon/patient/:id" element={<PatientReview />} />
           </Route>
         </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />
