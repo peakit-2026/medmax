@@ -1,2 +1,6 @@
 docs/
 target/
+node_modules/
+.env
+uploads/
+dist/
