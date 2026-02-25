@@ -6,6 +6,7 @@ use uuid::Uuid;
 use crate::middleware::auth::AuthUser;
 use crate::models::comment::Comment;
 use crate::models::patient::Patient;
+use crate::services::telegram::notify_patient;
 use crate::AppState;
 
 #[derive(Deserialize)]
@@ -74,7 +75,22 @@ pub async fn approve(
     .fetch_one(&state.db)
     .await
     {
-        Ok(p) => HttpResponse::Ok().json(p),
+        Ok(p) => {
+            let date_str = body
+                .operation_date
+                .map(|d| d.to_string())
+                .unwrap_or_else(|| "не назначена".to_string());
+            notify_patient(
+                &state.db,
+                id,
+                &format!(
+                    "Ваша подготовка подтверждена хирургом! Дата операции: {}",
+                    date_str
+                ),
+            )
+            .await;
+            HttpResponse::Ok().json(p)
+        }
         Err(_) => HttpResponse::InternalServerError()
             .json(serde_json::json!({"error": "Failed to approve patient"})),
     }
@@ -108,7 +124,15 @@ pub async fn reject(
     let _ = Comment::create(&state.db, id, auth.user_id, &body.comment).await;
 
     match Patient::update_status(&state.db, id, "red").await {
-        Ok(p) => HttpResponse::Ok().json(p),
+        Ok(p) => {
+            notify_patient(
+                &state.db,
+                id,
+                "Хирург оставил комментарий к вашей подготовке. Проверьте статус.",
+            )
+            .await;
+            HttpResponse::Ok().json(p)
+        }
         Err(_) => HttpResponse::InternalServerError()
             .json(serde_json::json!({"error": "Failed to reject patient"})),
     }

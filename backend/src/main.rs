@@ -51,6 +51,11 @@ async fn main() -> std::io::Result<()> {
         s3_bucket,
     };
 
+    let bot_pool = state.db.clone();
+    tokio::spawn(async move {
+        services::telegram::start_bot(bot_pool).await;
+    });
+
     log::info!("Starting server at http://0.0.0.0:8080");
 
     HttpServer::new(move || {

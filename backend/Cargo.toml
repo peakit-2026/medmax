@@ -26,3 +26,4 @@ rand = "0.8"
 futures-util = "0.3"
 aws-config = { version = "1", features = ["behavior-version-latest"] }
 aws-sdk-s3 = "1"
+teloxide = { version = "0.13", features = ["macros"] }
