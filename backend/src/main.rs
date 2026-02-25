@@ -76,6 +76,11 @@ async fn main() -> std::io::Result<()> {
                     .route("/{id}/uncomplete", web::put().to(routes::checklists::uncomplete))
                     .route("/{id}/upload", web::post().to(routes::checklists::upload)),
             )
+            .service(
+                web::scope("/api/iol")
+                    .route("/calculate", web::post().to(routes::iol::calculate))
+                    .route("/patient/{patient_id}", web::get().to(routes::iol::list_by_patient)),
+            )
     })
     .bind("0.0.0.0:8080")?
     .run()

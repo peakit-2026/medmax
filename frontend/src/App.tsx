@@ -7,6 +7,7 @@ import Layout from './components/Layout'
 import DoctorDashboard from './pages/doctor/DoctorDashboard'
 import NewPatientForm from './pages/doctor/NewPatientForm'
 import PatientCard from './pages/doctor/PatientCard'
+import IOLCalculator from './pages/doctor/IOLCalculator'
 
 function SurgeonDashboard() {
   return <div>Surgeon Dashboard (coming soon)</div>
@@ -33,6 +34,7 @@ function App() {
             <Route path="/doctor" element={<DoctorDashboard />} />
             <Route path="/doctor/new" element={<NewPatientForm />} />
             <Route path="/doctor/patient/:id" element={<PatientCard />} />
+            <Route path="/doctor/patient/:id/iol" element={<IOLCalculator />} />
           </Route>
         </Route>
         <Route element={<ProtectedRoute allowedRoles={['surgeon']} />}>
