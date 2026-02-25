@@ -1,3 +1,4 @@
+mod middleware;
 mod models;
 mod routes;
 mod services;
@@ -55,6 +56,12 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .app_data(web::Data::new(state.clone()))
             .route("/api/health", web::get().to(health_check))
+            .service(
+                web::scope("/api/auth")
+                    .route("/login", web::post().to(routes::auth::login))
+                    .route("/register", web::post().to(routes::auth::register))
+                    .route("/me", web::get().to(routes::auth::me)),
+            )
     })
     .bind("0.0.0.0:8080")?
     .run()
