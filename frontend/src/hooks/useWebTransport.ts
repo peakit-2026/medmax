@@ -138,13 +138,12 @@ export function useWebTransport(roomId: string) {
         })
 
         videoEncoder.configure({
-          codec: 'avc1.42001e',
+          codec: 'vp8',
           width: 640,
           height: 480,
           bitrate: 500_000,
           framerate: 30,
           latencyMode: 'realtime',
-          avc: { format: 'annexb' },
         })
         videoEncoderRef.current = videoEncoder
       }
@@ -291,8 +290,7 @@ export function useWebTransport(roomId: string) {
       })
 
       videoDecoder.configure({
-        codec: 'avc1.42001e',
-        optimizeForLatency: true,
+        codec: 'vp8',
       })
       videoDecoderRef.current = videoDecoder
 
