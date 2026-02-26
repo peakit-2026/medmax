@@ -158,7 +158,12 @@ function VideoCall({ roomId, calleeName, calleeRole, stream: preAcquiredStream, 
 
   // Auto-connect on mount, passing pre-acquired stream if available
   useEffect(() => {
-    connect(preAcquiredStream ?? null)
+    const stream = preAcquiredStream ?? null
+    console.log('[VideoCall] mount, preAcquiredStream:', stream,
+      'video:', stream?.getVideoTracks().length,
+      'audio:', stream?.getAudioTracks().length,
+      'active:', stream?.active)
+    connect(stream)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track "was ever connected"
@@ -205,14 +210,28 @@ function VideoCall({ roomId, calleeName, calleeRole, stream: preAcquiredStream, 
   // Local camera is active and showing
   const localCameraActive = hasCamera && !isCameraOff && isConnected
 
-  /* ── Hidden local video element (always present for getUserMedia) ── */
-  const hiddenLocalVideo = (
+  /* ── Local video element — PIP preview when camera is active, hidden otherwise ── */
+  const localVideo = (
     <video
       ref={localVideoRef}
       autoPlay
       muted
       playsInline
-      style={{ position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' }}
+      style={localCameraActive ? {
+        position: 'absolute',
+        bottom: 96,
+        right: 24,
+        width: 120,
+        height: 90,
+        borderRadius: 12,
+        objectFit: 'cover',
+        zIndex: 2,
+        border: '2px solid rgba(255,255,255,0.3)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        background: '#000',
+      } : {
+        position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none' as const,
+      }}
     />
   )
 
@@ -251,7 +270,7 @@ function VideoCall({ roomId, calleeName, calleeRole, stream: preAcquiredStream, 
         className="fixed inset-0 z-50 flex items-center justify-center"
         style={{ background: 'rgba(0,0,0,0.6)' }}
       >
-        {hiddenLocalVideo}
+        {localVideo}
         <div
           style={{
             position: 'relative',
@@ -456,7 +475,7 @@ function VideoCall({ roomId, calleeName, calleeRole, stream: preAcquiredStream, 
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ background: 'rgba(0,0,0,0.6)' }}
     >
-      {hiddenLocalVideo}
+      {localVideo}
       <div
         style={{
           position: 'relative',
@@ -567,6 +586,11 @@ function VideoCall({ roomId, calleeName, calleeRole, stream: preAcquiredStream, 
             Подключение...
           </div>
         )}
+
+        {/* Debug info — temporary */}
+        <div style={{ fontSize: 11, color: '#999', textAlign: 'center', marginBottom: 12, fontFamily: 'monospace', wordBreak: 'break-all', maxWidth: 360 }}>
+          cam:{hasCamera?'Y':'N'} mic:{hasAudio?'Y':'N'} conn:{isConnected?'Y':'N'} err:{error ?? 'none'}
+        </div>
 
         {/* Buttons */}
         {buttons}

@@ -675,7 +675,9 @@ function MessagesPage() {
   const handleStartCall = useCallback(async () => {
     if (!activeConversationId || showVideoCall || activeCall) return
     // Acquire media in click handler context (critical for mobile browsers)
-    const stream = await acquireMediaStream()
+    const { stream, error } = await acquireMediaStream()
+    console.log('[MessagesPage] acquireMediaStream result:', { stream, error,
+      video: stream?.getVideoTracks().length, audio: stream?.getAudioTracks().length })
     const roomId = crypto.randomUUID()
     setCallStream(stream)
     setCallRoomId(roomId)

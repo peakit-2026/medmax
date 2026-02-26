@@ -47,7 +47,7 @@ function IncomingCallBanner() {
 
   const handleAccept = useCallback(async () => {
     // Acquire media in click handler context (critical for mobile browsers)
-    const stream = await acquireMediaStream()
+    const { stream } = await acquireMediaStream()
     setCallStream(stream)
     setAccepted(true)
   }, [])

@@ -12,12 +12,24 @@ interface WebTransportState {
   error: string | null
 }
 
+export interface AcquireMediaResult {
+  stream: MediaStream | null
+  error: string | null
+}
+
 /**
  * Acquire camera+mic media stream with progressive fallback.
  * Call this from a click handler (user gesture context) for best mobile compatibility.
- * Returns the stream, or null if all attempts fail.
  */
-export async function acquireMediaStream(): Promise<MediaStream | null> {
+export async function acquireMediaStream(): Promise<AcquireMediaResult> {
+  // Check if mediaDevices API is available (requires HTTPS or localhost)
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return {
+      stream: null,
+      error: 'Камера и микрофон недоступны. Убедитесь, что сайт открыт по HTTPS.',
+    }
+  }
+
   const attempts: MediaStreamConstraints[] = [
     {
       video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
@@ -28,20 +40,38 @@ export async function acquireMediaStream(): Promise<MediaStream | null> {
     { video: false, audio: { channelCount: 1 } },
   ]
 
+  let lastError: any = null
   for (const constraints of attempts) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
-      console.log('[acquireMedia] OK with constraints:', JSON.stringify(constraints),
-        'video tracks:', stream.getVideoTracks().length,
-        'audio tracks:', stream.getAudioTracks().length)
-      return stream
+      console.log('[acquireMedia] OK:', JSON.stringify(constraints),
+        'video:', stream.getVideoTracks().length,
+        'audio:', stream.getAudioTracks().length)
+      return { stream, error: null }
     } catch (err: any) {
-      console.warn('[acquireMedia] Failed with constraints:', JSON.stringify(constraints), err.name, err.message)
+      lastError = err
+      console.warn('[acquireMedia] Failed:', JSON.stringify(constraints), err.name, err.message)
+      // If permission denied, don't bother trying other constraints — all will fail
+      if (err.name === 'NotAllowedError') break
     }
   }
 
-  console.error('[acquireMedia] All attempts failed')
-  return null
+  console.error('[acquireMedia] All attempts failed:', lastError?.name, lastError?.message)
+
+  let error: string
+  if (lastError?.name === 'NotAllowedError') {
+    error = 'Доступ к камере/микрофону заблокирован. Нажмите на иконку 🔒 в адресной строке и разрешите доступ, затем обновите страницу.'
+  } else if (lastError?.name === 'NotFoundError') {
+    error = 'Камера или микрофон не найдены на устройстве.'
+  } else if (lastError?.name === 'NotReadableError') {
+    error = 'Камера или микрофон заняты другим приложением.'
+  } else if (lastError?.name === 'OverconstrainedError') {
+    error = 'Камера не поддерживает запрошенные параметры.'
+  } else {
+    error = `Не удалось получить доступ к камере/микрофону: ${lastError?.message || 'неизвестная ошибка'}`
+  }
+
+  return { stream: null, error }
 }
 
 export function useWebTransport(roomId: string) {
@@ -122,6 +152,11 @@ export function useWebTransport(roomId: string) {
   // On reconnect, the existing streamRef is reused automatically.
   const connect = useCallback(async (preAcquiredStream?: MediaStream | null) => {
     try {
+      console.log('[connect] called, preAcquiredStream:', preAcquiredStream,
+        'video:', preAcquiredStream?.getVideoTracks().length,
+        'audio:', preAcquiredStream?.getAudioTracks().length,
+        'existing streamRef:', streamRef.current)
+
       cleanupTransport()
 
       if (typeof WebTransport === 'undefined') {
@@ -133,12 +168,18 @@ export function useWebTransport(roomId: string) {
       let stream = preAcquiredStream !== undefined ? preAcquiredStream : streamRef.current
       if (!stream) {
         // Fallback: try to acquire media ourselves (may fail on some mobile browsers without user gesture)
-        stream = await acquireMediaStream()
+        const result = await acquireMediaStream()
+        stream = result.stream
+        if (result.error && !result.stream) {
+          setState((s) => ({ ...s, error: result.error }))
+        }
       }
       streamRef.current = stream
       const hasVideo = (stream?.getVideoTracks().length ?? 0) > 0
-      const hasAudio = (stream?.getAudioTracks().length ?? 0) > 0
-      setState((s) => ({ ...s, hasCamera: hasVideo, hasAudio }))
+      const hasAudioTracks = (stream?.getAudioTracks().length ?? 0) > 0
+      console.log('[connect] final stream:', stream, 'hasVideo:', hasVideo, 'hasAudio:', hasAudioTracks,
+        'tracks:', stream?.getTracks().map(t => `${t.kind}:${t.readyState}:${t.enabled}`))
+      setState((s) => ({ ...s, hasCamera: hasVideo, hasAudio: hasAudioTracks }))
 
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream
