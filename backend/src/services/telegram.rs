@@ -110,6 +110,16 @@ async fn handle_command(bot: Bot, msg: Message, cmd: Command, pool: PgPool) -> R
     Ok(())
 }
 
+fn make_bot(token: String) -> Bot {
+    let mut bot = Bot::new(token);
+    let api_url = std::env::var("TELEGRAM_API_URL")
+        .unwrap_or_else(|_| "https://proxy.accordai.ru/telegram/".to_string());
+    if let Ok(url) = api_url.parse() {
+        bot = bot.set_api_url(url);
+    }
+    bot
+}
+
 pub async fn start_bot(pool: PgPool) {
     let token = match std::env::var("TELEGRAM_BOT_TOKEN") {
         Ok(t) if !t.is_empty() => t,
@@ -119,7 +129,7 @@ pub async fn start_bot(pool: PgPool) {
         }
     };
 
-    let bot = Bot::new(token);
+    let bot = make_bot(token);
 
     let handler = Update::filter_message()
         .filter_command::<Command>()
@@ -138,7 +148,7 @@ pub async fn notify_patient(pool: &PgPool, patient_id: Uuid, message: &str) {
         Ok(t) if !t.is_empty() => t,
         _ => return,
     };
-    let bot = Bot::new(token);
+    let bot = make_bot(token);
 
     if let Ok(Some(sub)) = TelegramSubscription::find_by_patient(pool, patient_id).await {
         let _ = bot.send_message(ChatId(sub.chat_id), message).send().await;
