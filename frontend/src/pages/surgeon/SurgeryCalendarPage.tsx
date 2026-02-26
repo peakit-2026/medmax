@@ -75,8 +75,12 @@ function SurgeryCalendarPage() {
   }, [monday])
 
   const loadSchedule = useCallback(async () => {
-    const data = await fetchSchedule(weekStartStr)
-    setSchedulePatients(data)
+    try {
+      const data = await fetchSchedule(weekStartStr)
+      setSchedulePatients(data ?? [])
+    } catch (e) {
+      console.error('[Calendar] Failed to load schedule:', e)
+    }
   }, [fetchSchedule, weekStartStr])
 
   useEffect(() => {
@@ -224,7 +228,7 @@ function SurgeryCalendarPage() {
                       </span>
                     </div>
 
-                    <div className="relative flex-1 min-h-0 overflow-clip">
+                    <div className="relative flex-1 min-h-0">
                       <div className="flex flex-col" style={{ gap: '24px' }}>
                         {TIME_SLOTS.map((slot) => (
                           <div
