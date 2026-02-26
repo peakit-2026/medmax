@@ -29,10 +29,15 @@ async fn main() -> std::io::Result<()> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
 
-    let mut s3_config_loader = aws_config::defaults(aws_config::BehaviorVersion::latest());
-    let s3_endpoint = std::env::var("AWS_ENDPOINT_URL")
-        .or_else(|_| std::env::var("S3_ENDPOINT"))
+    let s3_endpoint = std::env::var("S3_ENDPOINT")
+        .or_else(|_| std::env::var("AWS_ENDPOINT_URL"))
         .ok();
+    let s3_region = std::env::var("AWS_REGION")
+        .or_else(|_| std::env::var("AWS_DEFAULT_REGION"))
+        .unwrap_or_else(|_| "us-east-1".to_string());
+
+    let mut s3_config_loader = aws_config::defaults(aws_config::BehaviorVersion::latest())
+        .region(aws_config::Region::new(s3_region));
     if let Some(ref endpoint) = s3_endpoint {
         s3_config_loader = s3_config_loader.endpoint_url(endpoint);
     }
@@ -43,6 +48,7 @@ async fn main() -> std::io::Result<()> {
     }
     let s3_client = aws_sdk_s3::Client::from_conf(s3_builder.build());
     let s3_bucket = std::env::var("S3_BUCKET").expect("S3_BUCKET must be set");
+    log::info!("S3 configured: bucket={}, endpoint={:?}", s3_bucket, s3_endpoint);
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
