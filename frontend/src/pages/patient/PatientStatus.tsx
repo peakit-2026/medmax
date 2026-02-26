@@ -2,15 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import axios from 'axios'
 import type { PatientWithChecklist } from '../../types/index'
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
-}
+import { formatDateRu } from '../../types/index'
 
 type StageStatus = 'done' | 'active' | 'pending'
 
@@ -101,7 +93,7 @@ function PatientStatus() {
     {
       title: 'Операция назначена',
       status: stage3,
-      detail: patient.operation_date ? `Дата операции: ${formatDate(patient.operation_date)}` : undefined,
+      detail: patient.operation_date ? `Дата операции: ${formatDateRu(patient.operation_date)}` : undefined,
     },
   ]
 
@@ -117,7 +109,7 @@ function PatientStatus() {
         {patient.operation_date && (
           <div className="bg-green-50 border border-green-300 rounded-lg p-4 mb-6">
             <p className="text-xl font-semibold text-green-800">
-              Дата операции: {formatDate(patient.operation_date)}
+              Дата операции: {formatDateRu(patient.operation_date)}
             </p>
           </div>
         )}

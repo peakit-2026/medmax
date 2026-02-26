@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
 import type { Patient } from '../types'
-import { getDisplayStatus } from '../types'
+import { getDisplayStatus, formatDateRu } from '../types'
 
 const statusLabels: Record<string, string> = {
   red: 'Требует внимания',
@@ -19,7 +19,7 @@ export function exportPatientsToExcel(patients: Patient[], filename = 'patients'
     'Код диагноза': p.diagnosis_code,
     'Тип операции': p.operation_type,
     'Статус': statusLabels[getDisplayStatus(p)] || p.status,
-    'Дата операции': p.operation_date ? new Date(p.operation_date).toLocaleDateString('ru-RU') : '',
+    'Дата операции': p.operation_date ? formatDateRu(p.operation_date) : '',
     'Примечания': p.notes || '',
     'Создан': new Date(p.created_at).toLocaleDateString('ru-RU'),
   }))

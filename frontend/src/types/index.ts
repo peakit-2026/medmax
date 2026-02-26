@@ -89,6 +89,14 @@ export function getDisplayStatus(patient: Patient): DisplayStatus {
   return patient.status
 }
 
+export function formatDateRu(dateStr: string): string {
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) {
+    return `${match[3]}.${match[2]}.${match[1]}`
+  }
+  return dateStr
+}
+
 export function getLastAction(patient: Patient): LastAction {
   const d = new Date(patient.updated_at)
   const date = d.toLocaleDateString('ru-RU')
@@ -101,7 +109,7 @@ export function getLastAction(patient: Patient): LastAction {
       return { text: 'Документы на проверке', date: dateTime }
     case 'green':
       return patient.operation_date
-        ? { text: `Дата операции: ${new Date(patient.operation_date).toLocaleDateString('ru-RU')}`, date: dateTime }
+        ? { text: `Дата операции: ${formatDateRu(patient.operation_date)}`, date: dateTime }
         : { text: 'Одобрен хирургом', date: dateTime }
     default:
       return { text: 'Обновлено', date: dateTime }
