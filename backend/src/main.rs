@@ -30,11 +30,18 @@ async fn main() -> std::io::Result<()> {
     let jwt_secret = std::env::var("JWT_SECRET").expect("JWT_SECRET must be set");
 
     let mut s3_config_loader = aws_config::defaults(aws_config::BehaviorVersion::latest());
-    if let Ok(endpoint) = std::env::var("AWS_ENDPOINT_URL") {
-        s3_config_loader = s3_config_loader.endpoint_url(&endpoint);
+    let s3_endpoint = std::env::var("AWS_ENDPOINT_URL")
+        .or_else(|_| std::env::var("S3_ENDPOINT"))
+        .ok();
+    if let Some(ref endpoint) = s3_endpoint {
+        s3_config_loader = s3_config_loader.endpoint_url(endpoint);
     }
     let s3_config = s3_config_loader.load().await;
-    let s3_client = aws_sdk_s3::Client::new(&s3_config);
+    let mut s3_builder = aws_sdk_s3::config::Builder::from(&s3_config);
+    if s3_endpoint.is_some() {
+        s3_builder = s3_builder.force_path_style(true);
+    }
+    let s3_client = aws_sdk_s3::Client::from_conf(s3_builder.build());
     let s3_bucket = std::env::var("S3_BUCKET").expect("S3_BUCKET must be set");
 
     let pool = PgPoolOptions::new()

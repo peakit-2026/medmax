@@ -90,9 +90,10 @@ pub async fn upload(
         .send()
         .await;
 
-    if put_result.is_err() {
+    if let Err(e) = put_result {
+        log::error!("S3 upload failed: {:?}", e);
         return HttpResponse::InternalServerError()
-            .json(serde_json::json!({"error": "Failed to upload file to S3"}));
+            .json(serde_json::json!({"error": format!("Failed to upload file to S3: {}", e)}));
     }
 
     if content_type.starts_with("image/")
