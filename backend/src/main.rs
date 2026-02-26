@@ -78,6 +78,12 @@ async fn main() -> std::io::Result<()> {
         services::telegram::start_bot(bot_pool).await;
     });
 
+    let ws_state: web::Data<routes::chat::WsState> = web::Data::new(
+        std::sync::Arc::new(tokio::sync::RwLock::new(
+            routes::chat::WsConnections::new(),
+        )),
+    );
+
     log::info!("Starting server at http://0.0.0.0:8080");
 
     HttpServer::new(move || {
@@ -86,6 +92,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(cors)
             .app_data(web::Data::new(state.clone()))
+            .app_data(ws_state.clone())
             .route("/api/health", web::get().to(health_check))
             .service(
                 web::scope("/api/auth")
@@ -153,6 +160,23 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/patient/{patient_id}",
                         web::get().to(routes::surgeon::list_comments),
+                    ),
+            )
+            .route("/api/ws", web::get().to(routes::chat::ws_handler))
+            .service(
+                web::scope("/api/conversations")
+                    .route("", web::get().to(routes::chat::list_conversations))
+                    .route(
+                        "/{id}/messages",
+                        web::get().to(routes::chat::list_messages),
+                    )
+                    .route(
+                        "/{id}/messages",
+                        web::post().to(routes::chat::send_message_rest),
+                    )
+                    .route(
+                        "/attachments/{id}/file",
+                        web::get().to(routes::chat::serve_chat_file),
                     ),
             )
             .route(

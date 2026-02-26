@@ -1,3 +1,4 @@
+pub mod chat;
 pub mod checklist;
 pub mod comment;
 pub mod iol;
