@@ -91,7 +91,6 @@ export function useWebTransport(roomId: string) {
   const abortRef = useRef<AbortController | null>(null)
   const audioTimeRef = useRef(0)
   const waitingKeyframeRef = useRef(true)
-  const canvasCtxRef = useRef<CanvasRenderingContext2D | null>(null)
 
   const reconnectAttemptRef = useRef(0)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -132,7 +131,6 @@ export function useWebTransport(roomId: string) {
 
     audioTimeRef.current = 0
     waitingKeyframeRef.current = true
-    canvasCtxRef.current = null
   }, [])
 
   // Full cleanup: also stops media stream and resets all state
@@ -388,10 +386,10 @@ export function useWebTransport(roomId: string) {
           }
           if (canvas.width !== frame.displayWidth) canvas.width = frame.displayWidth
           if (canvas.height !== frame.displayHeight) canvas.height = frame.displayHeight
-          if (!canvasCtxRef.current) {
-            canvasCtxRef.current = canvas.getContext('2d')
-          }
-          canvasCtxRef.current?.drawImage(frame, 0, 0)
+          // Always re-acquire context: the canvas DOM element can change when
+          // VideoCall switches between card mode and video mode.
+          const ctx = canvas.getContext('2d')
+          ctx?.drawImage(frame, 0, 0)
           frame.close()
           setState((s) => s.hasRemoteVideo ? s : { ...s, hasRemoteVideo: true })
         },
