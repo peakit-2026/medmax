@@ -128,7 +128,7 @@ function SurgeryCalendarPage() {
 
   return (
     <div
-      className="flex flex-col size-full"
+      className="flex flex-col size-full responsive-page"
       style={{ padding: '36px 24px', gap: '36px' }}
     >
       <h1
@@ -143,7 +143,7 @@ function SurgeryCalendarPage() {
           className="bg-surface border border-border rounded-[24px] flex flex-col flex-1 min-w-0"
           style={{ padding: '24px', gap: '24px' }}
         >
-          <div className="flex items-center justify-between shrink-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 shrink-0">
             <div
               className="border border-border rounded-[16px] flex items-center overflow-clip shrink-0"
               style={{ padding: '16px' }}
@@ -184,7 +184,7 @@ function SurgeryCalendarPage() {
             </button>
           </div>
 
-          <div className="flex flex-1 min-h-0 overflow-y-auto drawer-scroll" style={{ gap: '16px' }}>
+          <div className="flex flex-1 min-h-0 overflow-auto drawer-scroll" style={{ gap: '16px' }}>
             <div className="flex flex-col shrink-0" style={{ width: '46px', paddingTop: '80px', gap: '24px' }}>
               {TIME_SLOTS.map((slot) => {
                 const isHalf = slot.endsWith(':30')
@@ -204,7 +204,7 @@ function SurgeryCalendarPage() {
               })}
             </div>
 
-            <div className="flex flex-1 min-w-0" style={{ gap: '12px' }}>
+            <div className="flex flex-1 min-w-0" style={{ gap: '12px', minWidth: 600 }}>
               {weekDays.map((day, dayIdx) => {
                 const dateStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`
                 const dayPatients = patientsByDay[dateStr] || []
@@ -286,7 +286,9 @@ function SurgeryCalendarPage() {
           </div>
         </div>
 
-        <MiniCalendar selectedDate={monday} onDateSelect={goToDate} />
+        <div className="hidden lg:block">
+          <MiniCalendar selectedDate={monday} onDateSelect={goToDate} />
+        </div>
       </div>
 
       {selectedPatientId && (

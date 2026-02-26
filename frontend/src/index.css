@@ -135,3 +135,26 @@ input:focus {
   -webkit-appearance: none;
   -moz-appearance: textfield;
 }
+
+/* ── Responsive utilities ── */
+
+.responsive-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1023px) {
+  .responsive-table-wrap::-webkit-scrollbar {
+    display: none;
+  }
+  .responsive-table-wrap {
+    scrollbar-width: none;
+  }
+  .responsive-page {
+    padding: 16px !important;
+    gap: 24px !important;
+  }
+  .responsive-card {
+    padding: 12px !important;
+  }
+}

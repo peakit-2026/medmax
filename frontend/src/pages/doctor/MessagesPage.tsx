@@ -562,6 +562,7 @@ function MessagesPage() {
   const sendCallStarted = useChatStore((s) => s.sendCallStarted)
   const sendCallEnded = useChatStore((s) => s.sendCallEnded)
 
+  const [showChat, setShowChat] = useState(false)
   const [showVideoCall, setShowVideoCall] = useState(false)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
   const [inputText, setInputText] = useState('')
@@ -593,6 +594,7 @@ function MessagesPage() {
       if (exists && activeConversationId !== chatId) {
         selectConversation(chatId)
         loadMessages(chatId)
+        setShowChat(true)
       }
     }
   }, [chatId, conversations, activeConversationId, selectConversation, loadMessages])
@@ -611,6 +613,7 @@ function MessagesPage() {
       selectConversation(conv.id)
       loadMessages(conv.id)
       navigate(`${basePath}/${conv.id}`)
+      setShowChat(true)
     },
     [selectConversation, loadMessages, navigate, basePath]
   )
@@ -751,14 +754,7 @@ function MessagesPage() {
     <div style={{ display: 'flex', height: '100%', fontFamily: 'var(--font-sans)', background: 'white' }}>
       {/* ── Left Panel: Conversation List ── */}
       <div
-        style={{
-          width: 500,
-          minWidth: 500,
-          borderRight: '1px solid rgba(120,120,128,0.16)',
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-        }}
+        className={`flex flex-col h-full border-r border-border w-full lg:w-[500px] lg:min-w-[500px] ${showChat ? 'hidden lg:flex' : 'flex'}`}
       >
         {/* Title */}
         <div style={{ padding: '32px 24px 16px', flexShrink: 0 }}>
@@ -803,7 +799,7 @@ function MessagesPage() {
       </div>
 
       {/* ── Right Panel: Chat View ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, background: 'white' }}>
+      <div className={`flex-1 flex flex-col h-full min-w-0 bg-white ${!showChat ? 'hidden lg:flex' : 'flex'}`}>
         {activeConv ? (
           <>
             {/* Chat header */}
@@ -820,6 +816,14 @@ function MessagesPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button
+                  onClick={() => setShowChat(false)}
+                  className="lg:hidden flex items-center justify-center w-8 h-8 rounded-full hover:bg-surface-secondary cursor-pointer shrink-0"
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M15 6L9 12L15 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
                 <ChatAvatar name={activeConv.other_user_name} role={activeConv.other_user_role} size={56} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <span
@@ -882,7 +886,7 @@ function MessagesPage() {
                     width: 20,
                     height: 20
                   }} />
-                  <span>Начать звонок</span>
+                  <span className="hidden sm:inline">Начать звонок</span>
                 </button>
               </div>
             </div>

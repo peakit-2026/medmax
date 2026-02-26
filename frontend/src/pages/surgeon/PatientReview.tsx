@@ -169,17 +169,17 @@ function PatientReview({ patientId, onClose }: Props) {
             {/* Patient info cards */}
             <div className="flex flex-col shrink-0" style={{ gap: '8px' }}>
               {/* Row 1: Пациент + Дата рождения */}
-              <div className="flex" style={{ gap: '8px' }}>
+              <div className="flex flex-col sm:flex-row" style={{ gap: '8px' }}>
                 <InfoCard icon={<User size={24} />} label="Пациент" value={shortenName(patient.full_name)} />
                 <InfoCard icon={<Calendar size={24} />} label="Дата рождения" value={patient.birth_date} />
               </div>
               {/* Row 2: СНИЛС + Полис ОМС */}
-              <div className="flex" style={{ gap: '8px' }}>
+              <div className="flex flex-col sm:flex-row" style={{ gap: '8px' }}>
                 <InfoCard icon={<FileText size={24} />} label="СНИЛС" value={patient.snils ?? '—'} />
                 <InfoCard icon={<FileText size={24} />} label="Полис ОМС" value={patient.insurance_policy ?? '—'} />
               </div>
               {/* Row 3: Диагноз + Статус */}
-              <div className="flex" style={{ gap: '8px' }}>
+              <div className="flex flex-col sm:flex-row" style={{ gap: '8px' }}>
                 <InfoCard icon={<Search size={24} />} label="Диагноз" value={patient.diagnosis_text} />
                 <div
                   className="flex-1 border border-border rounded-[24px] overflow-clip flex items-start"
@@ -203,7 +203,7 @@ function PatientReview({ patientId, onClose }: Props) {
                 </div>
               </div>
               {/* Row 4: Тип операции + Врач-офтальмолог */}
-              <div className="flex" style={{ gap: '8px' }}>
+              <div className="flex flex-col sm:flex-row" style={{ gap: '8px' }}>
                 <InfoCard icon={<Eye size={24} />} label="Тип операции" value={patient.operation_type} />
                 <InfoCard icon={<User size={24} />} label="Врач-офтальмолог" value="—" />
               </div>
@@ -333,7 +333,7 @@ function PatientReview({ patientId, onClose }: Props) {
           </div>
 
           {/* Bottom action buttons */}
-          <div className="flex shrink-0" style={{ gap: '8px' }}>
+          <div className="flex flex-col sm:flex-row shrink-0" style={{ gap: '8px' }}>
             {/* Написать врачу */}
             <button
               className="flex-1 flex items-center justify-center overflow-clip rounded-[16px] bg-fill-tertiary cursor-pointer hover:bg-fill-quaternary transition-colors"

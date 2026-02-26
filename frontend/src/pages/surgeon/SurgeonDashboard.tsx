@@ -138,7 +138,7 @@ function SurgeonDashboard() {
   }
 
   return (
-    <div className="flex flex-col flex-1 min-h-0" style={{ padding: '36px 24px', gap: '36px' }}>
+    <div className="flex flex-col flex-1 min-h-0 responsive-page" style={{ padding: '36px 24px', gap: '36px' }}>
       {/* Title */}
       <h1
         className="text-[32px] font-medium leading-[32px] tracking-[-1px] text-text"
@@ -151,26 +151,26 @@ function SurgeonDashboard() {
       <div className="flex flex-col flex-1 min-h-0" style={{ gap: '16px' }}>
         {/* Stats card */}
         <div
-          className="bg-surface border border-border rounded-[24px] flex items-center shrink-0"
-          style={{ height: '120px' }}
+          className="bg-surface border border-border rounded-[24px] grid grid-cols-2 lg:flex lg:items-center shrink-0"
+          style={{ minHeight: '120px' }}
         >
           <StatSection color="#FF3B30" label="Требуется внимание" count={counts.red} />
-          <VerticalDivider />
+          <VerticalDivider className="hidden lg:flex" />
           <StatSection color="#FFD000" label="В подготовке" count={counts.yellow} />
-          <VerticalDivider />
+          <VerticalDivider className="hidden lg:flex" />
           <StatSection color="#34C759" label="Готов к операции" count={counts.green} />
-          <VerticalDivider />
+          <VerticalDivider className="hidden lg:flex" />
           <StatSection color="#3E87FF" label="Назначена дата" count={counts.date_set} />
         </div>
 
         {/* Table card */}
         <div
-          className="bg-surface border border-border rounded-[24px] flex flex-col flex-1 min-h-0"
+          className="bg-surface border border-border rounded-[24px] flex flex-col flex-1 min-h-0 responsive-card"
           style={{ padding: '24px', gap: '12px' }}
         >
           {/* Search + actions */}
-          <div className="flex items-center justify-between" style={{ height: '56px' }}>
-            <div className="relative" style={{ width: '300px' }}>
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:justify-between" style={{ minHeight: '56px' }}>
+            <div className="relative w-full lg:w-[300px]">
               <Search
                 size={20}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
@@ -197,9 +197,9 @@ function SurgeonDashboard() {
           </div>
 
           {/* Pill tabs */}
-          <div className="flex flex-col items-start justify-center" style={{ height: '56px' }}>
+          <div className="flex flex-col items-start justify-center">
             <div
-              className="flex items-center overflow-clip"
+              className="flex items-center overflow-x-auto"
               style={{
                 background: 'rgba(120, 120, 128, 0.08)',
                 borderRadius: '16px',
@@ -255,7 +255,8 @@ function SurgeonDashboard() {
           {/* Data table + pagination */}
           <div className="flex flex-col flex-1" style={{ gap: '16px' }}>
             <div className="border border-border rounded-[16px] overflow-clip flex-1">
-              <table className="w-full" style={{ tableLayout: 'fixed' }}>
+              <div className="responsive-table-wrap">
+              <table className="w-full" style={{ tableLayout: 'fixed', minWidth: 800 }}>
                 <colgroup>
                   <col style={{ width: '56px' }} />
                   <col />
@@ -387,6 +388,7 @@ function SurgeonDashboard() {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
 
             {/* Pagination footer */}
@@ -464,9 +466,9 @@ function StatSection({
   )
 }
 
-function VerticalDivider() {
+function VerticalDivider({ className }: { className?: string }) {
   return (
-    <div className="self-stretch flex items-center" style={{ width: 0 }}>
+    <div className={`self-stretch flex items-center ${className ?? ''}`} style={{ width: 0 }}>
       <div
         style={{
           width: '1px',

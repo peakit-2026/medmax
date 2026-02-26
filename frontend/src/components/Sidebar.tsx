@@ -116,7 +116,12 @@ function shortenName(fullName: string): string {
 
 /* ── Component ── */
 
-function Sidebar() {
+interface SidebarProps {
+  isMobile?: boolean
+  onClose?: () => void
+}
+
+function Sidebar({ onClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [hoveredNav, setHoveredNav] = useState<string | null>(null)
   const [collapseHover, setCollapseHover] = useState(false)
@@ -134,18 +139,19 @@ function Sidebar() {
     <aside
       style={{
         width: collapsed ? 88 : 300,
+        maxWidth: '85vw',
         padding: '24px 16px',
         gap: 24,
         transition: 'width 0.2s ease',
       }}
       className="relative flex flex-col shrink-0 h-screen bg-surface border-r border-border"
     >
-      {/* ── Collapse toggle ── */}
+      {/* ── Collapse toggle (desktop only) ── */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         onMouseEnter={() => setCollapseHover(true)}
         onMouseLeave={() => setCollapseHover(false)}
-        className="absolute z-10 flex items-center justify-center cursor-pointer"
+        className="hidden lg:flex absolute z-10 items-center justify-center cursor-pointer"
         style={{
           width: 32,
           height: 32,
@@ -237,7 +243,7 @@ function Sidebar() {
             return (
               <button
                 key={item.label}
-                onClick={() => item.path && !item.disabled && navigate(item.path)}
+                onClick={() => { if (item.path && !item.disabled) { navigate(item.path); onClose?.() } }}
                 onMouseEnter={() => !item.disabled && setHoveredNav(item.label)}
                 onMouseLeave={() => setHoveredNav(null)}
                 title={collapsed ? item.label : undefined}

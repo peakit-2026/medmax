@@ -86,7 +86,7 @@ function IOLCalculatorPage() {
   const canCalculate = k1 && k2 && al && acd
 
   return (
-    <div className="flex-1 overflow-y-auto" style={{ padding: '36px 24px' }}>
+    <div className="flex-1 overflow-y-auto responsive-page" style={{ padding: '36px 24px' }}>
       {/* Header */}
       <h1
         className="text-[32px] font-medium leading-[32px] tracking-[-1px] text-text"
@@ -95,9 +95,9 @@ function IOLCalculatorPage() {
         Калькулятор ИОЛ
       </h1>
 
-      <div className="flex gap-8" style={{ maxWidth: 1200 }}>
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8" style={{ maxWidth: 1200 }}>
         {/* Left column: Form */}
-        <div className="flex flex-col" style={{ width: 480, gap: 24, flexShrink: 0 }}>
+        <div className="flex flex-col w-full lg:w-[480px] lg:shrink-0" style={{ gap: 24 }}>
           {/* Eye selector */}
           <div className="flex" style={{ gap: 8 }}>
             <button
@@ -414,11 +414,11 @@ function IOLCalculatorPage() {
         <div style={{ marginTop: 48, maxWidth: 1200 }}>
           <h3
             className="text-[24px] font-medium leading-[24px] tracking-[-0.5px] text-text"
-            style={{ fontFeatureSettings: "'ss01' 1", marginBottom: 24 }}
+            style={{ fontFeatureSettings: "'ss01' 1", marginBottom: 36 }}
           >
             История расчётов (текущая сессия)
           </h3>
-          <div className="border border-border rounded-[16px] overflow-clip">
+          <div className="border border-border rounded-[16px] overflow-clip responsive-table-wrap">
             {/* Table header */}
             <div className="flex w-full" style={{ height: 48 }}>
               {['Глаз', 'K1/K2', 'AL', 'ACD', 'Формула', 'ИОЛ'].map((h) => (
