@@ -90,7 +90,7 @@ const doctorNav: NavItem[] = [
 const surgeonNav: NavItem[] = [
   { icon: IconHome, label: 'Панель управления', path: '/surgeon' },
   { icon: IconChatbubble, label: 'Сообщения', path: '/surgeon/messages' },
-  { icon: IconCalendar, label: 'Календарь операций', disabled: true },
+  { icon: IconCalendar, label: 'Календарь операций', path: '/surgeon/calendar' },
   { icon: IconFile, label: 'Справочник МКБ-10', disabled: true },
   { icon: IconBell, label: 'Уведомления', disabled: true },
 ]

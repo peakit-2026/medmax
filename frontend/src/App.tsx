@@ -10,6 +10,7 @@ import IOLCalculator from './pages/doctor/IOLCalculator'
 import IOLCalculatorPage from './pages/doctor/IOLCalculatorPage'
 import MessagesPage from './pages/doctor/MessagesPage'
 import SurgeonDashboard from './pages/surgeon/SurgeonDashboard'
+import SurgeryCalendarPage from './pages/surgeon/SurgeryCalendarPage'
 import PatientLookup from './pages/patient/PatientLookup'
 import PatientStatus from './pages/patient/PatientStatus'
 import VideoCall from './components/VideoCall'
@@ -179,6 +180,7 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['surgeon']} />}>
           <Route element={<Layout />}>
             <Route path="/surgeon" element={<SurgeonDashboard />} />
+            <Route path="/surgeon/calendar" element={<SurgeryCalendarPage />} />
             <Route path="/surgeon/messages" element={<MessagesPage />} />
             <Route path="/surgeon/messages/:chatId" element={<MessagesPage />} />
           </Route>
