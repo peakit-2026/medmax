@@ -51,7 +51,7 @@ function addTime(timeStr: string, minutes: number): string {
   const total = h * 60 + m + minutes
   const hh = Math.floor(total / 60)
   const mm = total % 60
-  return `${hh}:${mm.toString().padStart(2, '0')}`
+  return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`
 }
 
 function getSlotOffset(time: string): number {
