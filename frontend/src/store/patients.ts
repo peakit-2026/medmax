@@ -80,16 +80,19 @@ export const usePatientStore = create<PatientState>((set, get) => ({
   toggleChecklist: async (itemId, patientId, currentCompleted) => {
     const patient = get().patients[patientId]
     if (patient) {
+      const newChecklist = patient.checklist.map((c) =>
+        c.id === itemId ? { ...c, is_completed: !currentCompleted } : c
+      )
+      const completed = newChecklist.filter((c) => c.is_completed).length
+      const newStatus = completed === 0 ? 'red' : 'yellow'
       set({
         patients: {
           ...get().patients,
-          [patientId]: {
-            ...patient,
-            checklist: patient.checklist.map((c) =>
-              c.id === itemId ? { ...c, is_completed: !currentCompleted } : c
-            ),
-          },
+          [patientId]: { ...patient, status: newStatus, checklist: newChecklist },
         },
+        patientList: get().patientList.map((p) =>
+          p.id === patientId ? { ...p, status: newStatus } : p
+        ),
       })
     }
 
@@ -102,16 +105,19 @@ export const usePatientStore = create<PatientState>((set, get) => ({
     } catch {
       const patient = get().patients[patientId]
       if (patient) {
+        const revertedChecklist = patient.checklist.map((c) =>
+          c.id === itemId ? { ...c, is_completed: currentCompleted } : c
+        )
+        const completed = revertedChecklist.filter((c) => c.is_completed).length
+        const revertedStatus = completed === 0 ? 'red' : 'yellow'
         set({
           patients: {
             ...get().patients,
-            [patientId]: {
-              ...patient,
-              checklist: patient.checklist.map((c) =>
-                c.id === itemId ? { ...c, is_completed: currentCompleted } : c
-              ),
-            },
+            [patientId]: { ...patient, status: revertedStatus, checklist: revertedChecklist },
           },
+          patientList: get().patientList.map((p) =>
+            p.id === patientId ? { ...p, status: revertedStatus } : p
+          ),
         })
       }
     }
