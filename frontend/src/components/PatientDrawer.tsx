@@ -6,7 +6,7 @@ import {
   MessageCircle,
   ChevronLeft,
 } from 'lucide-react'
-import calculatorIcon from '../assets/icons/calculator.svg'
+import calculatorIcon from '../assets/icon-calculator.svg'
 import downloadIcon from '../assets/icon-download.svg'
 import personIcon from '../assets/icons/person.svg'
 import calendarIcon from '../assets/icons/calendar.svg'

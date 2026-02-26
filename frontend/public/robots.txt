@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /doctor
+Disallow: /surgeon
+Disallow: /login
+Disallow: /api
+
+Sitemap: https://medmax.ru/sitemap.xml

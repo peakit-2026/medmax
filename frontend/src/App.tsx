@@ -15,6 +15,7 @@ import PatientLookup from './pages/patient/PatientLookup'
 import PatientStatus from './pages/patient/PatientStatus'
 import VideoCall from './components/VideoCall'
 import LandingPage from './pages/LandingPage'
+import NotFoundPage from './pages/NotFoundPage'
 
 function IncomingCallBanner() {
   const incomingCall = useChatStore((s) => s.incomingCall)
@@ -187,6 +188,7 @@ function App() {
           </Route>
         </Route>
         <Route path="/" element={<LandingPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   )
