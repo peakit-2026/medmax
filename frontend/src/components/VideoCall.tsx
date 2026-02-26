@@ -145,6 +145,8 @@ function VideoCall({ roomId, calleeName, calleeRole, stream: preAcquiredStream, 
     isCameraOff,
     hasRemoteVideo,
     error,
+    debugVideoSent,
+    debugVideoRecv,
     connect,
     disconnect,
     toggleMute,
@@ -589,7 +591,7 @@ function VideoCall({ roomId, calleeName, calleeRole, stream: preAcquiredStream, 
 
         {/* Debug info — temporary */}
         <div style={{ fontSize: 11, color: '#999', textAlign: 'center', marginBottom: 12, fontFamily: 'monospace', wordBreak: 'break-all', maxWidth: 360 }}>
-          cam:{hasCamera?'Y':'N'} mic:{hasAudio?'Y':'N'} conn:{isConnected?'Y':'N'} err:{error ?? 'none'}
+          cam:{hasCamera?'Y':'N'} mic:{hasAudio?'Y':'N'} conn:{isConnected?'Y':'N'} vSent:{debugVideoSent} vRecv:{debugVideoRecv} err:{error ?? 'none'}
         </div>
 
         {/* Buttons */}

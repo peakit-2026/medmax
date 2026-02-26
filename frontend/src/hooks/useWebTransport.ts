@@ -10,6 +10,9 @@ interface WebTransportState {
   isCameraOff: boolean
   hasRemoteVideo: boolean
   error: string | null
+  // debug counters (temporary)
+  debugVideoSent: number
+  debugVideoRecv: number
 }
 
 export interface AcquireMediaResult {
@@ -103,6 +106,8 @@ export function useWebTransport(roomId: string) {
     isCameraOff: false,
     hasRemoteVideo: false,
     error: null,
+    debugVideoSent: 0,
+    debugVideoRecv: 0,
   })
 
   // Light cleanup: tears down transport/encoders/decoders but keeps the media stream alive for reconnect
@@ -232,6 +237,7 @@ export function useWebTransport(roomId: string) {
             const chunkBuf = new Uint8Array(buf, 6)
             chunk.copyTo(chunkBuf)
             videoWriter.write(new Uint8Array(buf)).catch(() => {})
+            setState((s) => ({ ...s, debugVideoSent: s.debugVideoSent + 1 }))
           },
           error: (e) => console.error('VideoEncoder error:', e),
         })
@@ -485,6 +491,7 @@ export function useWebTransport(roomId: string) {
                   data: videoData,
                 })
                 videoDecoder.decode(chunk)
+                setState((s) => ({ ...s, debugVideoRecv: s.debugVideoRecv + 1 }))
               } catch {
                 waitingKeyframeRef.current = true
               }
