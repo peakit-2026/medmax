@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../store/auth'
 import {
   X,
   Upload,
@@ -8,12 +10,14 @@ import {
 } from 'lucide-react'
 import calculatorIcon from '../assets/icon-calculator.svg'
 import downloadIcon from '../assets/icon-download.svg'
+import downloadIconSm from '../assets/icons/download.svg'
 import personIcon from '../assets/icons/person.svg'
 import calendarIcon from '../assets/icons/calendar.svg'
 import documentIcon from '../assets/icons/document.svg'
 import checkmarkIcon from '../assets/icons/checkmark.svg'
 import eyeIcon from '../assets/icons/eye.svg'
 import searchIcon from '../assets/icons/search.svg'
+import lockIcon from '../assets/icons/lock.svg'
 import { usePatientStore, selectComments, selectMedia } from '../store/patients'
 import { getDisplayStatus, shortenName } from '../types'
 import type { ChecklistItem, Comment, MediaFile, IolCalculation } from '../types'
@@ -61,6 +65,8 @@ const statusConfig: Record<string, { color: string; label: string }> = {
 }
 
 function PatientDrawer({ patientId, onClose }: Props) {
+  const navigate = useNavigate()
+  const role = useAuthStore((s) => s.user?.role)
   const patient = usePatientStore((s) => s.patients[patientId])
   const fetchPatient = usePatientStore((s) => s.fetchPatient)
   const fetchComments = usePatientStore((s) => s.fetchComments)
@@ -322,7 +328,7 @@ function PatientDrawer({ patientId, onClose }: Props) {
         />
         <div
           ref={drawerPanelRef}
-          className="absolute right-0 top-0 bottom-0 w-[802px] max-w-full bg-white flex items-center justify-center"
+          className="drawer-panel absolute right-0 top-0 bottom-0 w-[802px] max-w-full bg-white flex items-center justify-center"
           style={{ transform: 'translateX(100%)' }}
         >
           <span className="text-text-secondary text-[16px] font-medium">Загрузка...</span>
@@ -344,7 +350,7 @@ function PatientDrawer({ patientId, onClose }: Props) {
       />
       <div
         ref={drawerPanelRef}
-        className="absolute right-0 top-0 bottom-0 w-[802px] max-w-full bg-white flex flex-col"
+        className="drawer-panel absolute right-0 top-0 bottom-0 w-[802px] max-w-full bg-white flex flex-col"
         style={{ transform: 'translateX(100%)' }}
       >
         {/* Content wrapper */}
@@ -755,13 +761,31 @@ function PatientDrawer({ patientId, onClose }: Props) {
                 >
                   Карточка пациента
                 </h2>
-                <button
-                  onClick={handleClose}
-                  className="flex items-center justify-center rounded-[16px] bg-fill-tertiary overflow-clip shrink-0"
-                  style={{ padding: '12px' }}
-                >
-                  <X size={24} strokeWidth={2} />
-                </button>
+                <div className="flex items-center shrink-0" style={{ gap: '8px' }}>
+                  <button
+                    onClick={async () => {
+                      const res = await api.get(`/patients/${patientId}/route-sheet`, { responseType: 'blob' })
+                      const url = URL.createObjectURL(res.data)
+                      const a = document.createElement('a')
+                      a.href = url
+                      a.download = 'route-sheet.pdf'
+                      a.click()
+                      URL.revokeObjectURL(url)
+                    }}
+                    className="flex items-center rounded-[16px] bg-fill-tertiary overflow-clip shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ padding: '12px', gap: '8px' }}
+                  >
+                    <img src={downloadIconSm} width={24} height={24} alt="" />
+                    <span className="text-[16px] font-medium leading-[24px] text-text whitespace-nowrap">Скачать маршрутный лист</span>
+                  </button>
+                  <button
+                    onClick={handleClose}
+                    className="flex items-center justify-center rounded-[16px] bg-fill-tertiary overflow-clip shrink-0"
+                    style={{ padding: '12px' }}
+                  >
+                    <X size={24} strokeWidth={2} />
+                  </button>
+                </div>
               </div>
 
               {/* Scrollable area */}
@@ -774,14 +798,18 @@ function PatientDrawer({ patientId, onClose }: Props) {
                     <InfoCard icon={<img src={personIcon} width={24} height={24} alt="" />} label="Пациент" value={shortenName(patient.full_name)} />
                     <InfoCard icon={<img src={calendarIcon} width={24} height={24} alt="" />} label="Дата рождения" value={patient.birth_date} />
                   </div>
-                  {/* Row 2: СНИЛС + Полис ОМС */}
+                  {/* Row 2: Код доступа + СНИЛС */}
                   <div className="flex" style={{ gap: '8px' }}>
+                    <InfoCard icon={<img src={lockIcon} width={24} height={24} alt="" />} label="Код доступа" value={patient.access_code} />
                     <InfoCard icon={<img src={documentIcon} width={24} height={24} alt="" />} label="СНИЛС" value={patient.snils ?? '—'} />
-                    <InfoCard icon={<img src={documentIcon} width={24} height={24} alt="" />} label="Полис ОМС" value={patient.insurance_policy ?? '—'} />
                   </div>
-                  {/* Row 3: Диагноз + Статус */}
+                  {/* Row 3: Полис ОМС + Диагноз */}
                   <div className="flex" style={{ gap: '8px' }}>
+                    <InfoCard icon={<img src={documentIcon} width={24} height={24} alt="" />} label="Полис ОМС" value={patient.insurance_policy ?? '—'} />
                     <InfoCard icon={<img src={searchIcon} width={24} height={24} alt="" />} label="Диагноз" value={patient.diagnosis_text} />
+                  </div>
+                  {/* Row 4: Статус + Тип операции */}
+                  <div className="flex" style={{ gap: '8px' }}>
                     {/* Status card — custom with badge dot */}
                     <div
                       className="flex-1 border border-border rounded-[24px] overflow-clip flex items-start"
@@ -803,11 +831,12 @@ function PatientDrawer({ patientId, onClose }: Props) {
                         </div>
                       </div>
                     </div>
-                  </div>
-                  {/* Row 4: Тип операции + Хирург */}
-                  <div className="flex" style={{ gap: '8px' }}>
                     <InfoCard icon={<img src={eyeIcon} width={24} height={24} alt="" />} label="Тип операции" value={patient.operation_type} />
+                  </div>
+                  {/* Row 5: Хирург */}
+                  <div className="flex" style={{ gap: '8px' }}>
                     <InfoCard icon={<img src={personIcon} width={24} height={24} alt="" />} label="Хирург" value="—" />
+                    <div className="flex-1 border border-transparent rounded-[24px]" style={{ padding: '16px' }} />
                   </div>
                 </div>
 
@@ -931,15 +960,11 @@ function PatientDrawer({ patientId, onClose }: Props) {
                   </span>
                 </button>
                 <button
-                  className="flex-1 flex items-center justify-center overflow-clip rounded-[16px] bg-fill-tertiary"
-                  style={{ padding: '16px' }}
-                >
-                  <MessageCircle size={24} />
-                  <span className="text-[16px] font-medium leading-[24px] text-text" style={{ padding: '0 8px' }}>
-                    Написать хирургу
-                  </span>
-                </button>
-                <button
+                  onClick={() => {
+                    const base = role === 'surgeon' ? '/surgeon' : '/doctor'
+                    navigate(`${base}/messages`)
+                    onClose()
+                  }}
                   className="flex-1 flex items-center justify-center overflow-clip text-white rounded-[16px] relative"
                   style={{
                     padding: '16px',
@@ -947,8 +972,9 @@ function PatientDrawer({ patientId, onClose }: Props) {
                       'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%), linear-gradient(90deg, rgb(0,122,255) 0%, rgb(0,122,255) 100%)',
                   }}
                 >
+                  <MessageCircle size={24} />
                   <span className="text-[16px] font-medium leading-[24px] text-white" style={{ padding: '0 8px' }}>
-                    Отправить на проверку
+                    Написать хирургу
                   </span>
                   <div
                     className="absolute inset-0 pointer-events-none rounded-[inherit]"

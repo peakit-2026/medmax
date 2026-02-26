@@ -138,6 +138,19 @@ input:focus {
   -moz-appearance: textfield;
 }
 
+/* ── Drawer buttons ── */
+
+.drawer-panel button,
+.drawer-panel [role="button"] {
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.drawer-panel button:hover:not(:disabled),
+.drawer-panel [role="button"]:hover:not(:disabled) {
+  opacity: 0.75;
+}
+
 /* ── Responsive utilities ── */
 
 .responsive-table-wrap {
