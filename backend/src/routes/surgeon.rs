@@ -1,5 +1,5 @@
 use actix_web::{HttpResponse, web};
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveTime};
 use serde::Deserialize;
 use uuid::Uuid;
 
@@ -12,6 +12,7 @@ use crate::services::telegram::notify_patient;
 #[derive(Deserialize)]
 pub struct ApproveRequest {
     pub operation_date: Option<NaiveDate>,
+    pub operation_time: Option<NaiveTime>,
 }
 
 #[derive(Deserialize)]
@@ -64,6 +65,7 @@ pub async fn approve(
                 operation_type: &patient.operation_type,
                 notes: patient.notes.as_deref(),
                 operation_date: Some(op_date),
+                operation_time: body.operation_time,
             },
         )
         .await;
@@ -164,5 +166,27 @@ pub async fn list_comments(
         Err(_) => {
             HttpResponse::InternalServerError().json(serde_json::json!({"error": "Database error"}))
         }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct ScheduleQuery {
+    pub week_start: NaiveDate,
+}
+
+pub async fn schedule(
+    state: web::Data<AppState>,
+    auth: AuthUser,
+    query: web::Query<ScheduleQuery>,
+) -> HttpResponse {
+    if auth.role != "surgeon" {
+        return HttpResponse::Forbidden()
+            .json(serde_json::json!({"error": "Only surgeons can view schedule"}));
+    }
+
+    match Patient::list_by_week(&state.db, query.week_start).await {
+        Ok(patients) => HttpResponse::Ok().json(patients),
+        Err(_) => HttpResponse::InternalServerError()
+            .json(serde_json::json!({"error": "Database error"})),
     }
 }

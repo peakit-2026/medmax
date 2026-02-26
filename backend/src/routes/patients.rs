@@ -1,5 +1,5 @@
 use actix_web::{HttpResponse, web};
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveTime};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -33,6 +33,7 @@ pub struct UpdatePatientRequest {
     pub operation_type: String,
     pub notes: Option<String>,
     pub operation_date: Option<NaiveDate>,
+    pub operation_time: Option<NaiveTime>,
 }
 
 #[derive(Serialize)]
@@ -180,6 +181,7 @@ pub async fn update(
             operation_type: &body.operation_type,
             notes: body.notes.as_deref(),
             operation_date: body.operation_date,
+            operation_time: body.operation_time,
         },
     )
     .await

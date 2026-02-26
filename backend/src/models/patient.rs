@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -19,6 +19,7 @@ pub struct Patient {
     pub status: String,
     pub access_code: String,
     pub operation_date: Option<NaiveDate>,
+    pub operation_time: Option<NaiveTime>,
     pub notes: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -54,6 +55,7 @@ pub struct UpdatePatientParams<'a> {
     pub operation_type: &'a str,
     pub notes: Option<&'a str>,
     pub operation_date: Option<NaiveDate>,
+    pub operation_time: Option<NaiveTime>,
 }
 
 impl Patient {
@@ -116,7 +118,7 @@ impl Patient {
 
     pub async fn update(pool: &PgPool, params: UpdatePatientParams<'_>) -> sqlx::Result<Self> {
         sqlx::query_as::<_, Self>(
-            "UPDATE patients SET full_name = $2, birth_date = $3, snils = $4, insurance_policy = $5, diagnosis_code = $6, diagnosis_text = $7, operation_type = $8, notes = $9, operation_date = $10, updated_at = NOW() WHERE id = $1 RETURNING *",
+            "UPDATE patients SET full_name = $2, birth_date = $3, snils = $4, insurance_policy = $5, diagnosis_code = $6, diagnosis_text = $7, operation_type = $8, notes = $9, operation_date = $10, operation_time = $11, updated_at = NOW() WHERE id = $1 RETURNING *",
         )
         .bind(params.id)
         .bind(params.full_name)
@@ -128,7 +130,19 @@ impl Patient {
         .bind(params.operation_type)
         .bind(params.notes)
         .bind(params.operation_date)
+        .bind(params.operation_time)
         .fetch_one(pool)
+        .await
+    }
+
+    pub async fn list_by_week(pool: &PgPool, week_start: NaiveDate) -> sqlx::Result<Vec<Self>> {
+        let week_end = week_start + chrono::Duration::days(5);
+        sqlx::query_as::<_, Self>(
+            "SELECT * FROM patients WHERE operation_date >= $1 AND operation_date < $2 AND operation_time IS NOT NULL ORDER BY operation_date, operation_time",
+        )
+        .bind(week_start)
+        .bind(week_end)
+        .fetch_all(pool)
         .await
     }
 }

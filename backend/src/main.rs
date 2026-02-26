@@ -152,7 +152,8 @@ async fn main() -> std::io::Result<()> {
                     .route(
                         "/patients/{id}/reject",
                         web::post().to(routes::surgeon::reject),
-                    ),
+                    )
+                    .route("/schedule", web::get().to(routes::surgeon::schedule)),
             )
             .service(
                 web::scope("/api/comments")
