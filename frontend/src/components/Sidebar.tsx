@@ -82,7 +82,7 @@ interface NavItem {
 const doctorNav: NavItem[] = [
   { icon: IconHome, label: 'Панель управления', path: '/doctor' },
   { icon: IconChatbubble, label: 'Сообщения', disabled: true },
-  { icon: IconCalculator, label: 'Калькулятор ИОЛ', disabled: true },
+  { icon: IconCalculator, label: 'Калькулятор ИОЛ', path: '/doctor/iol' },
   { icon: IconFile, label: 'Справочник МКБ-10', disabled: true },
   { icon: IconBell, label: 'Уведомления', disabled: true },
 ]
@@ -218,7 +218,11 @@ function Sidebar() {
         {/* Navigation */}
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {navItems.map((item) => {
-            const isActive = item.path ? location.pathname.startsWith(item.path) : false
+            const isActive = item.path
+              ? item.path === '/doctor' || item.path === '/surgeon'
+                ? location.pathname === item.path
+                : location.pathname.startsWith(item.path)
+              : false
             const Icon = item.icon
 
             return (

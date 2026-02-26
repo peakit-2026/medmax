@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import DoctorDashboard from './pages/doctor/DoctorDashboard'
 import IOLCalculator from './pages/doctor/IOLCalculator'
+import IOLCalculatorPage from './pages/doctor/IOLCalculatorPage'
 import SurgeonDashboard from './pages/surgeon/SurgeonDashboard'
 import PatientReview from './pages/surgeon/PatientReview'
 import PatientLookup from './pages/patient/PatientLookup'
@@ -29,6 +30,7 @@ function App() {
             <Route path="/doctor" element={<DoctorDashboard />} />
             <Route path="/doctor/new" element={<Navigate to="/doctor" replace />} />
             <Route path="/doctor/patient/:id" element={<Navigate to="/doctor" replace />} />
+            <Route path="/doctor/iol" element={<IOLCalculatorPage />} />
             <Route path="/doctor/patient/:id/iol" element={<IOLCalculator />} />
           </Route>
         </Route>

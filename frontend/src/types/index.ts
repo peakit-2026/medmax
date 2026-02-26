@@ -46,7 +46,7 @@ export interface Comment {
 
 export interface IolCalculation {
   id: string
-  patient_id: string
+  patient_id: string | null
   eye: string
   k1: number
   k2: number

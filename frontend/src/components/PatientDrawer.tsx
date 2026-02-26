@@ -156,6 +156,7 @@ function PatientDrawer({ patientId, onClose }: Props) {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
     fetchPatient(patientId)
+    fetchMedia(patientId)
   }
 
   const enterEditMode = () => {
@@ -789,9 +790,11 @@ function PatientDrawer({ patientId, onClose }: Props) {
                         <div key={item.id}>
                           <ChecklistRow
                             item={item}
+                            mediaFiles={mediaFiles}
                             onToggle={() => toggleChecklist(item.id, patientId, item.is_completed)}
                             onFileUpload={(file) => handleChecklistFileUpload(item, file)}
                             onNavigateIOL={() => setMode('iol')}
+                            onViewFile={(src) => setViewerSrc(src)}
                           />
                           {i < patient.checklist.length - 1 && (
                             <div className="w-full h-px bg-border" style={{ marginTop: '12px' }} />
@@ -953,16 +956,23 @@ function CommentItem({ comment, showDivider }: { comment: Comment; showDivider: 
 
 function ChecklistRow({
   item,
+  mediaFiles,
   onToggle,
   onFileUpload,
   onNavigateIOL,
+  onViewFile,
 }: {
   item: ChecklistItem
+  mediaFiles: MediaFile[]
   onToggle: () => void
   onFileUpload: (file: File) => void
   onNavigateIOL: () => void
+  onViewFile: (src: string) => void
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const linkedMedia = item.item_type === 'file_upload' && item.file_path
+    ? mediaFiles.find((m) => m.file_path === item.file_path)
+    : null
 
   return (
     <div className="flex items-center justify-between">
@@ -991,16 +1001,26 @@ function ChecklistRow({
       {/* Right: Action button */}
       {item.item_type === 'file_upload' && item.file_path && (
         <div
-          className="flex items-center overflow-clip rounded-full bg-fill-tertiary shrink-0"
+          className="flex items-center overflow-clip rounded-full bg-fill-tertiary shrink-0 cursor-pointer"
           style={{ padding: '8px', maxWidth: '260px' }}
+          onClick={() => {
+            if (linkedMedia) onViewFile(`/api/media/${linkedMedia.id}/file`)
+          }}
         >
-          <div className="w-[24px] h-[24px] rounded-[8px] border border-border bg-surface-secondary shrink-0" />
+          <div className="w-[24px] h-[24px] rounded-[8px] border border-border shrink-0 overflow-clip">
+            {linkedMedia ? (
+              <img
+                src={`/api/media/${linkedMedia.id}/thumb`}
+                className="w-full h-full object-cover"
+                alt=""
+              />
+            ) : (
+              <div className="w-full h-full bg-surface-secondary" />
+            )}
+          </div>
           <span className="text-[16px] font-medium leading-[24px] text-text truncate" style={{ padding: '0 8px' }}>
-            {item.file_path.split('/').pop() || 'Файл'}
+            {linkedMedia?.file_name || item.file_path.split('/').pop() || 'Файл'}
           </span>
-          <button className="shrink-0">
-            <X size={24} className="text-text-secondary" />
-          </button>
         </div>
       )}
 
@@ -1055,13 +1075,11 @@ function MediaPill({
 }) {
   return (
     <div
-      className="flex items-center overflow-clip rounded-full bg-fill-tertiary"
+      className="flex items-center overflow-clip rounded-full bg-fill-tertiary cursor-pointer hover:bg-fill-quaternary transition-colors"
       style={{ padding: '8px', maxWidth: '220px' }}
+      onClick={onClick}
     >
-      <div
-        className="w-[24px] h-[24px] rounded-[8px] border border-border shrink-0 cursor-pointer overflow-clip"
-        onClick={onClick}
-      >
+      <div className="w-[24px] h-[24px] rounded-[8px] border border-border shrink-0 overflow-clip">
         <img
           src={`/api/media/${file.id}/thumb`}
           className="w-full h-full object-cover"
@@ -1069,13 +1087,15 @@ function MediaPill({
         />
       </div>
       <span
-        className="text-[16px] font-medium leading-[24px] text-text cursor-pointer truncate"
+        className="text-[16px] font-medium leading-[24px] text-text truncate"
         style={{ padding: '0 8px' }}
-        onClick={onClick}
       >
         {file.file_name}
       </span>
-      <button onClick={onDelete} className="shrink-0">
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete() }}
+        className="shrink-0 cursor-pointer hover:opacity-70 transition-opacity"
+      >
         <X size={24} className="text-text-secondary" />
       </button>
     </div>

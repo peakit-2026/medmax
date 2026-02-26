@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct IolCalculation {
     pub id: Uuid,
-    pub patient_id: Uuid,
+    pub patient_id: Option<Uuid>,
     pub eye: String,
     pub k1: f64,
     pub k2: f64,
@@ -19,7 +19,7 @@ pub struct IolCalculation {
 }
 
 pub struct CreateIolParams<'a> {
-    pub patient_id: Uuid,
+    pub patient_id: Option<Uuid>,
     pub eye: &'a str,
     pub k1: f64,
     pub k2: f64,

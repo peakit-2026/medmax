@@ -9,7 +9,7 @@ use crate::services::iol;
 
 #[derive(Deserialize)]
 pub struct CalculateRequest {
-    pub patient_id: Uuid,
+    pub patient_id: Option<Uuid>,
     pub eye: String,
     pub k1: f64,
     pub k2: f64,
