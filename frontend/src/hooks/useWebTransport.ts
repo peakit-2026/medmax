@@ -96,6 +96,56 @@ export function useWebTransport(roomId: string) {
         return
       }
 
+      // ── Acquire media FIRST, while user-gesture context is still alive ──
+      // On mobile browsers, getUserMedia must happen close to the user tap,
+      // before any async network calls consume the gesture allowance.
+      let hasVideo = false
+      let stream: MediaStream | null = null
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
+          audio: AUDIO_CONSTRAINTS,
+        })
+        hasVideo = stream.getVideoTracks().length > 0
+      } catch {
+        // Camera failed — try audio-only with constraints
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: AUDIO_CONSTRAINTS,
+          })
+        } catch {
+          // Constraints rejected — try bare minimum
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: false,
+              audio: true,
+            })
+          } catch (mediaErr: any) {
+            if (mediaErr.name === 'NotAllowedError') {
+              setState((s) => ({
+                ...s,
+                error: 'Нет доступа к камере/микрофону. Разрешите доступ в настройках браузера (значок 🔒 слева от адресной строки).',
+              }))
+            } else {
+              setState((s) => ({
+                ...s,
+                error: 'Не удалось получить доступ к камере или микрофону.',
+              }))
+            }
+            // Continue without local media — user can still receive
+          }
+        }
+      }
+      streamRef.current = stream
+      const hasAudio = (stream?.getAudioTracks().length ?? 0) > 0
+      setState((s) => ({ ...s, hasCamera: hasVideo, hasAudio }))
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream
+      }
+
+      // ── Now connect to the SFU (after media is acquired) ──
       const { data } = await api.post('/videochat/ticket', { room_id: roomId })
       const { ticket, sfu_url } = data
 
@@ -126,43 +176,6 @@ export function useWebTransport(roomId: string) {
 
       const abort = new AbortController()
       abortRef.current = abort
-
-      let hasVideo = false
-      let stream: MediaStream | null = null
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480, frameRate: 30 },
-          audio: AUDIO_CONSTRAINTS,
-        })
-        hasVideo = stream.getVideoTracks().length > 0
-      } catch {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: false,
-            audio: AUDIO_CONSTRAINTS,
-          })
-        } catch (mediaErr: any) {
-          if (mediaErr.name === 'NotAllowedError') {
-            setState((s) => ({
-              ...s,
-              error: 'Нет доступа к камере/микрофону. Разрешите доступ в настройках браузера (значок 🔒 слева от адресной строки).',
-            }))
-          } else {
-            setState((s) => ({
-              ...s,
-              error: 'Не удалось получить доступ к камере или микрофону.',
-            }))
-          }
-          // Continue without local media — user can still receive
-        }
-      }
-      streamRef.current = stream
-      const hasAudio = (stream?.getAudioTracks().length ?? 0) > 0
-      setState((s) => ({ ...s, hasCamera: hasVideo, hasAudio }))
-
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream
-      }
 
       const biStream = await transport.createBidirectionalStream()
       const videoWriter = biStream.writable.getWriter()
