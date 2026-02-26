@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import api from '../api/client'
+import { useAuthStore } from './auth'
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -162,6 +163,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
               const updated = ids.has(msg.id) ? existing : [...existing, msg]
 
               // Update conversation list
+              const currentUserId = useAuthStore.getState().user?.id
+              const isMine = msg.sender_id === currentUserId
               const conversations = state.conversations.map((c) => {
                 if (c.id !== convId) return c
                 return {
@@ -169,7 +172,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                   last_message: msg.content,
                   last_message_at: msg.created_at,
                   unread_count:
-                    state.activeConversationId === convId
+                    isMine || state.activeConversationId === convId
                       ? c.unread_count
                       : c.unread_count + 1,
                 }
@@ -213,14 +216,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
           case 'messages_read': {
             const convId = data.conversation_id as string
+            const currentUserId = useAuthStore.getState().user?.id
 
             set((state) => {
               const msgs = state.messages[convId]
               if (!msgs) return state
 
+              // Only mark messages I sent as read (the other party just read them)
               const updated = msgs.map((m) => ({
                 ...m,
-                read_at: m.read_at ?? new Date().toISOString(),
+                read_at: m.sender_id === currentUserId && !m.read_at
+                  ? new Date().toISOString()
+                  : m.read_at,
               }))
 
               return {

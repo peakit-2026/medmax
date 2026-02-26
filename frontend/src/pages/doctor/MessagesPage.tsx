@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Search,
-  Video,
   Paperclip,
   Mic,
   CheckCheck,
@@ -11,6 +10,7 @@ import {
   Send,
   Reply,
 } from 'lucide-react'
+import videoIcon from '../../assets/icons/camera.svg'
 import { useChatStore, type Conversation, type ChatMessage, type MessageAttachment } from '../../store/chat'
 import { useAuthStore } from '../../store/auth'
 import VideoCall from '../../components/VideoCall'
@@ -423,6 +423,7 @@ function MessagesPage() {
   const sendCallEnded = useChatStore((s) => s.sendCallEnded)
 
   const [showVideoCall, setShowVideoCall] = useState(false)
+  const [callRoomId, setCallRoomId] = useState<string | null>(null)
   const [inputText, setInputText] = useState('')
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
@@ -521,6 +522,7 @@ function MessagesPage() {
   const handleStartCall = useCallback(() => {
     if (!activeConversationId) return
     const roomId = crypto.randomUUID()
+    setCallRoomId(roomId)
     sendCallStarted(activeConversationId, roomId)
     setShowVideoCall(true)
   }, [activeConversationId, sendCallStarted])
@@ -679,7 +681,10 @@ function MessagesPage() {
                     fontFamily: 'var(--font-sans)',
                   }}
                 >
-                  <Video size={20} />
+                  <img src={videoIcon} alt="" style={{
+                    width: 20,
+                    height: 20
+                  }} />
                   <span>Начать звонок</span>
                 </button>
               </div>
@@ -903,12 +908,12 @@ function MessagesPage() {
     </div>
 
       {/* Video call modal */}
-      {showVideoCall && activeConv && (
+      {showVideoCall && activeConv && callRoomId && (
         <VideoCall
-          roomId={activeConv.id}
+          roomId={callRoomId}
           calleeName={activeConv.other_user_name}
           calleeRole={activeConv.other_user_role}
-          onClose={() => setShowVideoCall(false)}
+          onClose={() => { setShowVideoCall(false); setCallRoomId(null) }}
           onCallEnd={handleCallEnd}
         />
       )}

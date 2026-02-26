@@ -108,6 +108,7 @@ enum WsOutgoing {
 
 // ── Helper: get the "other" user in a conversation ──────────────────────
 
+/// Returns the other user's ID if `my_user_id` is a participant, else None.
 async fn get_other_user_id(
     pool: &sqlx::PgPool,
     conversation_id: Uuid,
@@ -128,9 +129,27 @@ async fn get_other_user_id(
 
     if row.doctor_id == my_user_id {
         Some(row.surgeon_id)
-    } else {
+    } else if row.surgeon_id == my_user_id {
         Some(row.doctor_id)
+    } else {
+        None // user is not a participant
     }
+}
+
+/// Check if user is a participant of the conversation.
+async fn is_participant(
+    pool: &sqlx::PgPool,
+    conversation_id: Uuid,
+    user_id: Uuid,
+) -> bool {
+    sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM conversations WHERE id = $1 AND (doctor_id = $2 OR surgeon_id = $2))",
+    )
+    .bind(conversation_id)
+    .bind(user_id)
+    .fetch_one(pool)
+    .await
+    .unwrap_or(false)
 }
 
 // ── WebSocket handler ───────────────────────────────────────────────────
@@ -231,6 +250,18 @@ async fn handle_ws_message(
     user_id: Uuid,
     msg: WsIncoming,
 ) {
+    // Verify the user is a participant in the conversation for all message types
+    let conv_id = match &msg {
+        WsIncoming::SendMessage { conversation_id, .. }
+        | WsIncoming::Typing { conversation_id }
+        | WsIncoming::MarkRead { conversation_id }
+        | WsIncoming::CallStarted { conversation_id, .. }
+        | WsIncoming::CallEnded { conversation_id } => *conversation_id,
+    };
+    if !is_participant(pool, conv_id, user_id).await {
+        return;
+    }
+
     match msg {
         WsIncoming::SendMessage {
             conversation_id,
@@ -371,11 +402,17 @@ pub struct ListMessagesQuery {
 
 pub async fn list_messages(
     state: web::Data<AppState>,
-    _auth: AuthUser,
+    auth: AuthUser,
     path: web::Path<Uuid>,
     query: web::Query<ListMessagesQuery>,
 ) -> HttpResponse {
     let conversation_id = path.into_inner();
+
+    if !is_participant(&state.db, conversation_id, auth.user_id).await {
+        return HttpResponse::Forbidden()
+            .json(serde_json::json!({"error": "Access denied"}));
+    }
+
     let limit = query.limit.unwrap_or(50).min(100);
 
     match Message::list_for_conversation(&state.db, conversation_id, query.before, limit).await {
@@ -398,6 +435,11 @@ pub async fn send_message_rest(
     mut payload: actix_multipart::Multipart,
 ) -> HttpResponse {
     let conversation_id = path.into_inner();
+
+    if !is_participant(&state.db, conversation_id, auth.user_id).await {
+        return HttpResponse::Forbidden()
+            .json(serde_json::json!({"error": "Access denied"}));
+    }
 
     let mut content: Option<String> = None;
     let mut reply_to_id: Option<Uuid> = None;
@@ -429,6 +471,7 @@ pub async fn send_message_rest(
                 reply_to_id = Uuid::parse_str(val.trim()).ok();
             }
             "files" | "file" => {
+                const MAX_FILE_SIZE: usize = 25 * 1024 * 1024; // 25 MB
                 let filename = field
                     .content_disposition()
                     .and_then(|cd| cd.get_filename().map(|s| s.to_string()))
@@ -440,6 +483,10 @@ pub async fn send_message_rest(
                 let mut bytes = Vec::new();
                 while let Some(Ok(chunk)) = field.next().await {
                     bytes.extend_from_slice(&chunk);
+                    if bytes.len() > MAX_FILE_SIZE {
+                        return HttpResponse::PayloadTooLarge()
+                            .json(serde_json::json!({"error": "File too large (max 25 MB)"}));
+                    }
                 }
                 files.push((filename, content_type, bytes));
             }
@@ -535,7 +582,7 @@ pub async fn send_message_rest(
 /// GET /api/conversations/attachments/{id}/file
 pub async fn serve_chat_file(
     state: web::Data<AppState>,
-    _auth: AuthUser,
+    auth: AuthUser,
     path: web::Path<Uuid>,
 ) -> HttpResponse {
     let attachment_id = path.into_inner();
@@ -547,6 +594,28 @@ pub async fn serve_chat_file(
                 .json(serde_json::json!({"error": "Attachment not found"}))
         }
     };
+
+    // Verify caller is a participant in the conversation that owns this attachment
+    let is_member = sqlx::query_scalar::<_, bool>(
+        r#"
+        SELECT EXISTS(
+            SELECT 1 FROM message_attachments ma
+            JOIN messages m ON m.id = ma.message_id
+            JOIN conversations c ON c.id = m.conversation_id
+            WHERE ma.id = $1 AND (c.doctor_id = $2 OR c.surgeon_id = $2)
+        )
+        "#,
+    )
+    .bind(attachment_id)
+    .bind(auth.user_id)
+    .fetch_one(&state.db)
+    .await
+    .unwrap_or(false);
+
+    if !is_member {
+        return HttpResponse::Forbidden()
+            .json(serde_json::json!({"error": "Access denied"}));
+    }
 
     let result = state
         .s3_client
@@ -565,7 +634,8 @@ pub async fn serve_chat_file(
                 .map(|data| data.into_bytes())
                 .unwrap_or_default();
             HttpResponse::Ok()
-                .content_type(attachment.mime_type)
+                .content_type(attachment.mime_type.clone())
+                .insert_header(("Content-Disposition", format!("attachment; filename=\"{}\"", attachment.file_name)))
                 .body(bytes.to_vec())
         }
         Err(_) => HttpResponse::NotFound()
