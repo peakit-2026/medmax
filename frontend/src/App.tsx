@@ -14,6 +14,7 @@ import SurgeryCalendarPage from './pages/surgeon/SurgeryCalendarPage'
 import PatientLookup from './pages/patient/PatientLookup'
 import PatientStatus from './pages/patient/PatientStatus'
 import VideoCall from './components/VideoCall'
+import LandingPage from './pages/LandingPage'
 
 function IncomingCallBanner() {
   const incomingCall = useChatStore((s) => s.incomingCall)
@@ -185,7 +186,7 @@ function App() {
             <Route path="/surgeon/messages/:chatId" element={<MessagesPage />} />
           </Route>
         </Route>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<LandingPage />} />
       </Routes>
     </BrowserRouter>
   )
