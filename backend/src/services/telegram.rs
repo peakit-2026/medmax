@@ -112,10 +112,10 @@ async fn handle_command(bot: Bot, msg: Message, cmd: Command, pool: PgPool) -> R
 
 fn make_bot(token: String) -> Bot {
     let mut bot = Bot::new(token);
-    let api_url = std::env::var("TELEGRAM_API_URL")
-        .unwrap_or_else(|_| "https://proxy.accordai.ru/telegram/".to_string());
-    if let Ok(url) = api_url.parse() {
-        bot = bot.set_api_url(url);
+    if let Ok(api_url) = std::env::var("TELEGRAM_API_URL") {
+        if let Ok(url) = api_url.parse() {
+            bot = bot.set_api_url(url);
+        }
     }
     bot
 }
