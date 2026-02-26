@@ -133,7 +133,12 @@ impl Conversation {
             FROM conversations c
             JOIN users u ON u.id = CASE WHEN $2 = 'doctor' THEN c.surgeon_id ELSE c.doctor_id END
             LEFT JOIN LATERAL (
-                SELECT m.content, m.created_at
+                SELECT
+                    COALESCE(m.content,
+                        CASE WHEN EXISTS(SELECT 1 FROM message_attachments ma WHERE ma.message_id = m.id)
+                            THEN 'Вложение' ELSE NULL END
+                    ) AS content,
+                    m.created_at
                 FROM messages m
                 WHERE m.conversation_id = c.id
                 ORDER BY m.created_at DESC

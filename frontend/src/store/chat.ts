@@ -169,7 +169,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 if (c.id !== convId) return c
                 return {
                   ...c,
-                  last_message: msg.content,
+                  last_message: msg.content ?? (msg.attachments.length > 0 ? 'Вложение' : null),
                   last_message_at: msg.created_at,
                   unread_count:
                     isMine || state.activeConversationId === convId

@@ -3,14 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   Search,
   Paperclip,
-  Mic,
   CheckCheck,
   Folder,
   X,
   Send,
-  Reply,
 } from 'lucide-react'
 import videoIcon from '../../assets/icons/camera.svg'
+import api from '../../api/client'
 import { useChatStore, type Conversation, type ChatMessage, type MessageAttachment } from '../../store/chat'
 import { useAuthStore } from '../../store/auth'
 import VideoCall from '../../components/VideoCall'
@@ -36,6 +35,15 @@ function formatFileSize(bytes: number): string {
 function formatTime(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+}
+
+/** "Иванов Петр Сергеевич" → "Иванов П. С." */
+function shortenName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/)
+  if (parts.length <= 1) return fullName
+  const lastName = parts[0]
+  const initials = parts.slice(1).map((p) => `${p.charAt(0).toUpperCase()}.`).join(' ')
+  return `${lastName} ${initials}`
 }
 
 /* ── Avatar ──────────────────────────────────────────────────────────── */
@@ -105,7 +113,7 @@ function ConversationItem({
             style={{
               fontSize: 20,
               fontWeight: 600,
-              lineHeight: '24px',
+              lineHeight: '20px',
               letterSpacing: -0.33,
               color: '#101012',
               whiteSpace: 'nowrap',
@@ -113,7 +121,7 @@ function ConversationItem({
               textOverflow: 'ellipsis',
             }}
           >
-            {conversation.other_user_name}
+            {shortenName(conversation.other_user_name)}
           </span>
           {conversation.unread_count > 0 && (
             <span
@@ -141,7 +149,7 @@ function ConversationItem({
             style={{
               fontSize: 16,
               fontWeight: 500,
-              lineHeight: '20px',
+              lineHeight: '24px',
               color: 'rgba(60,60,67,0.72)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
@@ -158,48 +166,78 @@ function ConversationItem({
 
 /* ── File attachment display ─────────────────────────────────────────── */
 
-function FileAttachment({ attachment }: { attachment: MessageAttachment }) {
+function FileAttachment({
+  attachment,
+  time,
+  isOwn,
+  readAt,
+}: {
+  attachment: MessageAttachment
+  time: string
+  isOwn: boolean
+  readAt: string | null
+}) {
   const [hovered, setHovered] = useState(false)
 
+  const handleDownload = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault()
+    try {
+      const { data } = await api.get(`/conversations/attachments/${attachment.id}/file`, {
+        responseType: 'blob',
+      })
+      const url = URL.createObjectURL(data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = attachment.file_name
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      // Ignore download errors
+    }
+  }, [attachment.id, attachment.file_name])
+
   return (
-    <a
-      href={`/api/conversations/attachments/${attachment.id}/file`}
-      target="_blank"
-      rel="noopener noreferrer"
+    <button
+      onClick={handleDownload}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
-        padding: '8px 12px',
-        borderRadius: 12,
-        background: hovered ? 'rgba(0,122,255,0.08)' : 'rgba(0,122,255,0.04)',
-        textDecoration: 'none',
+        gap: 8,
+        maxWidth: 360,
+        minWidth: 244,
         cursor: 'pointer',
-        transition: 'background 0.15s ease',
+        opacity: hovered ? 0.8 : 1,
+        transition: 'opacity 0.15s ease',
+        border: 'none',
+        background: 'none',
+        padding: 0,
+        fontFamily: 'var(--font-sans)',
+        textAlign: 'left',
       }}
     >
       <div
         style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 100%), #007AFF',
+          width: 48,
+          height: 48,
+          borderRadius: 9999,
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%), #007AFF',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
+          boxShadow: 'inset 0px -1px 1px 0px rgba(16,16,18,0.12)',
         }}
       >
-        <Folder size={18} color="white" />
+        <Folder size={22} color="white" />
       </div>
-      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <span
           style={{
             fontSize: 16,
             fontWeight: 500,
-            lineHeight: '20px',
+            lineHeight: '24px',
             color: '#101012',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
@@ -208,11 +246,36 @@ function FileAttachment({ attachment }: { attachment: MessageAttachment }) {
         >
           {attachment.file_name}
         </span>
-        <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(60,60,67,0.72)' }}>
-          {formatFileSize(attachment.file_size)}
-        </span>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            minWidth: 140,
+            height: 16,
+          }}
+        >
+          <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(60,60,67,0.72)', lineHeight: '12px' }}>
+            {formatFileSize(attachment.file_size)}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minWidth: 64 }}>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 500,
+                color: 'rgba(60,60,67,0.72)',
+                lineHeight: '12px',
+                textAlign: 'center',
+                width: 48,
+              }}
+            >
+              {time}
+            </span>
+            {isOwn && readAt && <CheckCheck size={14} color="#007aff" />}
+          </div>
+        </div>
       </div>
-    </a>
+    </button>
   )
 }
 
@@ -224,25 +287,67 @@ function ReplyBlock({ senderName, content }: { senderName: string; content: stri
       style={{
         borderLeft: '2px solid #3e87ff',
         background: 'rgba(62,135,255,0.12)',
-        borderRadius: '0 8px 8px 0',
-        padding: '6px 10px',
-        marginBottom: 6,
+        borderRadius: 8,
+        padding: '8px 8px 8px 10px',
+        maxWidth: 528,
+        minWidth: 220,
       }}
     >
-      <div style={{ fontSize: 13, fontWeight: 600, color: '#3e87ff', lineHeight: '16px' }}>{senderName}</div>
       <div
         style={{
-          fontSize: 14,
+          fontSize: 16,
+          fontWeight: 500,
+          color: '#3e87ff',
+          lineHeight: '24px',
+        }}
+      >
+        {senderName}
+      </div>
+      <div
+        style={{
+          fontSize: 16,
           fontWeight: 400,
           color: '#101012',
-          lineHeight: '18px',
-          whiteSpace: 'nowrap',
+          lineHeight: '24px',
+          letterSpacing: -0.25,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          maxWidth: 458,
         }}
       >
         {content}
       </div>
+    </div>
+  )
+}
+
+/* ── Inline status (time + checkmark) ─────────────────────────────────── */
+
+function InlineStatus({ time, isOwn, readAt }: { time: string; isOwn: boolean; readAt: string | null }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        minWidth: 64,
+        flex: '1 0 0',
+      }}
+    >
+      <span
+        style={{
+          fontSize: 12,
+          fontWeight: 500,
+          color: 'rgba(60,60,67,0.72)',
+          lineHeight: '12px',
+          textAlign: 'center',
+          width: 48,
+        }}
+      >
+        {time}
+      </span>
+      {isOwn && readAt && <CheckCheck size={14} color="#007aff" />}
     </div>
   )
 }
@@ -252,13 +357,14 @@ function ReplyBlock({ senderName, content }: { senderName: string; content: stri
 function MessageBubble({
   message,
   isOwn,
-  onReply,
 }: {
   message: ChatMessage
   isOwn: boolean
-  onReply: (msg: ChatMessage) => void
 }) {
-  const [hovered, setHovered] = useState(false)
+  const time = formatTime(message.created_at)
+  const hasReply = !!(message.reply_to_content && message.reply_to_sender_name)
+  const hasText = !!message.content
+  const hasAttachments = message.attachments.length > 0
 
   return (
     <div
@@ -266,7 +372,7 @@ function MessageBubble({
         display: 'flex',
         justifyContent: isOwn ? 'flex-end' : 'flex-start',
         alignItems: 'flex-end',
-        gap: 8,
+        gap: 24,
         width: '100%',
       }}
     >
@@ -275,11 +381,12 @@ function MessageBubble({
       )}
       <div
         style={{
-          maxWidth: '65%',
-          position: 'relative',
+          maxWidth: 560,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: isOwn ? 'flex-end' : 'flex-start',
+          flex: '1 0 0',
         }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
       >
         <div
           style={{
@@ -287,71 +394,96 @@ function MessageBubble({
             borderRadius: 16,
             background: isOwn ? '#f7f8fa' : 'white',
             border: '1px solid rgba(120,120,128,0.16)',
+            maxWidth: 560,
+            minWidth: hasAttachments && !hasText ? 244 : undefined,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
           }}
         >
-          {/* Reply quote */}
-          {message.reply_to_content && message.reply_to_sender_name && (
-            <ReplyBlock senderName={message.reply_to_sender_name} content={message.reply_to_content} />
-          )}
-
-          {/* Text content */}
-          {message.content && (
+          {/* Sender name + reply block */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              paddingBottom: 8,
+              width: '100%',
+            }}
+          >
+            {/* Sender name in blue */}
             <div
               style={{
                 fontSize: 16,
-                fontWeight: 400,
-                lineHeight: '22px',
-                color: '#101012',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
+                fontWeight: 500,
+                color: '#3e87ff',
+                lineHeight: '24px',
               }}
             >
-              {message.content}
+              {shortenName(message.sender_name)}
             </div>
-          )}
 
-          {/* Attachments */}
-          {message.attachments.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: message.content ? 8 : 0 }}>
+            {/* Reply quote */}
+            {hasReply && (
+              <ReplyBlock senderName={message.reply_to_sender_name!} content={message.reply_to_content!} />
+            )}
+          </div>
+
+          {/* File attachments */}
+          {hasAttachments && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {message.attachments.map((att) => (
-                <FileAttachment key={att.id} attachment={att} />
+                <FileAttachment
+                  key={att.id}
+                  attachment={att}
+                  time={time}
+                  isOwn={isOwn}
+                  readAt={message.read_at}
+                />
               ))}
             </div>
           )}
 
-          {/* Timestamp + read indicator */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4, marginTop: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(60,60,67,0.72)' }}>
-              {formatTime(message.created_at)}
-            </span>
-            {isOwn && message.read_at && <CheckCheck size={14} color="#007aff" />}
-          </div>
-        </div>
+          {/* Text content with inline status */}
+          {hasText && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                width: '100%',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: 400,
+                  lineHeight: '24px',
+                  letterSpacing: -0.25,
+                  color: '#101012',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {message.content}
+              </div>
+              {/* Last line + status using flex-wrap trick */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'flex-end',
+                  justifyContent: 'flex-end',
+                  gap: '2px 0',
+                  width: '100%',
+                }}
+              >
+                <InlineStatus time={time} isOwn={isOwn} readAt={message.read_at} />
+              </div>
+            </div>
+          )}
 
-        {/* Reply button on hover */}
-        {hovered && (
-          <button
-            onClick={() => onReply(message)}
-            style={{
-              position: 'absolute',
-              top: 8,
-              [isOwn ? 'left' : 'right']: -36,
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              border: 'none',
-              background: 'rgba(120,120,128,0.12)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'rgba(60,60,67,0.72)',
-            }}
-            title="Ответить"
-          >
-            <Reply size={14} />
-          </button>
-        )}
+          {/* If file-only, status is already shown in FileAttachment */}
+        </div>
       </div>
     </div>
   )
@@ -514,11 +646,6 @@ function MessagesPage() {
     setPendingFiles((prev) => prev.filter((_, i) => i !== index))
   }, [])
 
-  const handleReply = useCallback((msg: ChatMessage) => {
-    setReplyTo(msg)
-    textareaRef.current?.focus()
-  }, [])
-
   const handleStartCall = useCallback(() => {
     if (!activeConversationId) return
     const roomId = crypto.randomUUID()
@@ -552,7 +679,7 @@ function MessagesPage() {
 
   return (
     <>
-    <div style={{ display: 'flex', height: '100%', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ display: 'flex', height: '100%', fontFamily: 'var(--font-sans)', background: 'white' }}>
       {/* ── Left Panel: Conversation List ── */}
       <div
         style={{
@@ -607,7 +734,7 @@ function MessagesPage() {
       </div>
 
       {/* ── Right Panel: Chat View ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, background: 'white' }}>
         {activeConv ? (
           <>
             {/* Chat header */}
@@ -635,7 +762,7 @@ function MessagesPage() {
                       color: '#101012',
                     }}
                   >
-                    {activeConv.other_user_name}
+                    {shortenName(activeConv.other_user_name)}
                   </span>
                   <span style={{ fontSize: 16, fontWeight: 500, lineHeight: '20px', color: 'rgba(60,60,67,0.72)' }}>
                     {ROLE_LABELS[activeConv.other_user_role] ?? activeConv.other_user_role}
@@ -697,21 +824,18 @@ function MessagesPage() {
               style={{
                 flex: 1,
                 overflowY: 'auto',
-                padding: '24px 36px',
+                padding: '36px 24px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 12,
-                justifyContent: 'flex-end',
                 minHeight: 0,
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 24, marginTop: 'auto' }}>
                 {activeMessages.map((msg) => (
                   <MessageBubble
                     key={msg.id}
                     message={msg}
                     isOwn={msg.sender_id === user?.id}
-                    onReply={handleReply}
                   />
                 ))}
                 <div ref={messagesEndRef} />
@@ -833,6 +957,7 @@ function MessagesPage() {
                     background: 'white',
                     maxHeight: 120,
                     overflowY: 'auto',
+                    scrollbarWidth: 'none',
                   }}
                   onInput={(e) => {
                     const target = e.target as HTMLTextAreaElement
@@ -841,50 +966,29 @@ function MessagesPage() {
                   }}
                 />
 
-                {/* Send / Mic button */}
-                {inputText.trim() || pendingFiles.length > 0 ? (
-                  <button
-                    onClick={handleSend}
-                    disabled={sending}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      border: 'none',
-                      background: '#007aff',
-                      cursor: sending ? 'default' : 'pointer',
-                      color: 'white',
-                      flexShrink: 0,
-                      opacity: sending ? 0.6 : 1,
-                      transition: 'opacity 0.15s ease',
-                    }}
-                    title="Отправить"
-                  >
-                    <Send size={20} />
-                  </button>
-                ) : (
-                  <button
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      border: 'none',
-                      background: 'transparent',
-                      cursor: 'pointer',
-                      color: 'rgba(60,60,67,0.72)',
-                      flexShrink: 0,
-                    }}
-                    title="Голосовое сообщение"
-                  >
-                    <Mic size={22} />
-                  </button>
-                )}
+                {/* Send button */}
+                <button
+                  onClick={handleSend}
+                  disabled={sending || (!inputText.trim() && pendingFiles.length === 0)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    border: 'none',
+                    background: inputText.trim() || pendingFiles.length > 0 ? '#007aff' : 'rgba(120,120,128,0.12)',
+                    cursor: inputText.trim() || pendingFiles.length > 0 ? 'pointer' : 'default',
+                    color: inputText.trim() || pendingFiles.length > 0 ? 'white' : 'rgba(60,60,67,0.36)',
+                    flexShrink: 0,
+                    opacity: sending ? 0.6 : 1,
+                    transition: 'background 0.15s ease, color 0.15s ease, opacity 0.15s ease',
+                  }}
+                  title="Отправить"
+                >
+                  <Send size={20} />
+                </button>
               </div>
             </div>
           </>
