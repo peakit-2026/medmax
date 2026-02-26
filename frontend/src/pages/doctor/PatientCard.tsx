@@ -55,7 +55,13 @@ function PatientCard() {
         </button>
       </div>
 
-      {showVideo && <VideoCall roomId={patient.id} onClose={() => setShowVideo(false)} />}
+      {showVideo && (
+        <VideoCall
+          roomId={patient.id}
+          calleeName={patient.full_name}
+          onClose={() => setShowVideo(false)}
+        />
+      )}
 
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 max-w-lg">
