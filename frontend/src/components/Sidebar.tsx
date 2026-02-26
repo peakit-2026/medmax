@@ -81,7 +81,7 @@ interface NavItem {
 
 const doctorNav: NavItem[] = [
   { icon: IconHome, label: 'Панель управления', path: '/doctor' },
-  { icon: IconChatbubble, label: 'Сообщения', disabled: true },
+  { icon: IconChatbubble, label: 'Сообщения', path: '/doctor/messages' },
   { icon: IconCalculator, label: 'Калькулятор ИОЛ', path: '/doctor/iol' },
   { icon: IconFile, label: 'Справочник МКБ-10', disabled: true },
   { icon: IconBell, label: 'Уведомления', disabled: true },
@@ -89,7 +89,7 @@ const doctorNav: NavItem[] = [
 
 const surgeonNav: NavItem[] = [
   { icon: IconHome, label: 'Панель управления', path: '/surgeon' },
-  { icon: IconChatbubble, label: 'Сообщения', disabled: true },
+  { icon: IconChatbubble, label: 'Сообщения', path: '/surgeon/messages' },
   { icon: IconCalendar, label: 'Календарь операций', disabled: true },
   { icon: IconFile, label: 'Справочник МКБ-10', disabled: true },
   { icon: IconBell, label: 'Уведомления', disabled: true },
