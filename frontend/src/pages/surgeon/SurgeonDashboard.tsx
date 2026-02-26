@@ -3,6 +3,7 @@ import { Search, Upload, ArrowUpDown, ArrowUp, ArrowDown, Check, X } from 'lucid
 import { usePatientStore } from '../../store/patients'
 import { getDisplayStatus, shortenName } from '../../types'
 import type { DisplayStatus } from '../../types'
+import { exportPatientsToExcel } from '../../utils/exportExcel'
 import PatientReview from './PatientReview'
 
 type SortField = 'full_name' | 'region' | 'diagnosis_text' | 'operation_type' | 'created_at' | 'action'
@@ -185,6 +186,7 @@ function SurgeonDashboard() {
             </div>
             <div className="flex items-center" style={{ gap: '8px' }}>
               <button
+                onClick={() => exportPatientsToExcel(filtered, 'patients')}
                 className="flex items-center justify-center overflow-clip rounded-[16px] bg-fill-tertiary text-[16px] font-medium leading-[24px] cursor-pointer hover:bg-fill-quaternary transition-colors"
                 style={{ padding: '16px' }}
               >

@@ -6,6 +6,7 @@ import NewPatientModal from './NewPatientForm'
 import { usePatientStore } from '../../store/patients'
 import { getDisplayStatus, getLastAction, shortenName } from '../../types'
 import type { DisplayStatus } from '../../types'
+import { exportPatientsToExcel } from '../../utils/exportExcel'
 
 type SortField = 'full_name' | 'diagnosis_text' | 'operation_type' | 'status' | 'last_action'
 type SortDir = 'asc' | 'desc'
@@ -183,6 +184,7 @@ function DoctorDashboard() {
             </div>
             <div className="flex items-center" style={{ gap: '8px' }}>
               <button
+                onClick={() => exportPatientsToExcel(filtered, 'patients')}
                 className="flex items-center justify-center overflow-clip rounded-[16px] bg-fill-tertiary text-[16px] font-medium leading-[24px] cursor-pointer hover:bg-fill-quaternary transition-colors"
                 style={{ padding: '16px' }}
               >
