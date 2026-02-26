@@ -354,10 +354,10 @@ function DoctorDashboard() {
                     const action = getLastAction(p)
                     const rowBg = i % 2 === 0 ? '#FFFFFF' : '#F7F8FA'
                     return (
-                      <tr key={p.id} className="h-[64px] border-b border-border cursor-pointer hover:bg-surface-secondary transition-colors" style={{ background: rowBg }}>
+                      <tr key={p.id} className="h-[64px] border-b border-border cursor-pointer hover:bg-surface-secondary transition-colors" style={{ background: rowBg }} onClick={() => setSelectedPatientId(p.id)} onMouseEnter={() => fetchPatient(p.id)}>
                         <td style={{ paddingLeft: '16px', paddingRight: '12px' }}>
                           <button
-                            onClick={() => toggleOne(p.id)}
+                            onClick={(e) => { e.stopPropagation(); toggleOne(p.id) }}
                             className="w-5 h-5 rounded-[6px] flex items-center justify-center shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                             style={selectedIds.has(p.id)
                               ? { backgroundColor: '#007AFF', border: '1.5px solid #007AFF' }
@@ -371,13 +371,9 @@ function DoctorDashboard() {
                           </button>
                         </td>
                         <td className="px-3 overflow-hidden text-ellipsis whitespace-nowrap">
-                          <button
-                            onClick={() => setSelectedPatientId(p.id)}
-                            onMouseEnter={() => fetchPatient(p.id)}
-                            className="text-primary hover:underline text-[16px] leading-[24px] font-normal text-left truncate max-w-full cursor-pointer"
-                          >
+                          <span className="text-primary text-[16px] leading-[24px] font-normal truncate max-w-full">
                             {shortenName(p.full_name)}
-                          </button>
+                          </span>
                         </td>
                         <td className="px-3 text-[16px] leading-[24px] font-normal text-text overflow-hidden text-ellipsis whitespace-nowrap">
                           {p.diagnosis_text}

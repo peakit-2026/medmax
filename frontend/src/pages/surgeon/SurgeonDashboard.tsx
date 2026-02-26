@@ -347,6 +347,7 @@ function SurgeonDashboard() {
                         className="h-[64px] border-b border-border cursor-pointer hover:bg-surface-secondary transition-colors"
                         style={{ background: rowBg }}
                         onClick={() => setSelectedPatientId(p.id)}
+                        onMouseEnter={() => fetchPatient(p.id)}
                       >
                         <td style={{ paddingLeft: '16px', paddingRight: '12px' }}>
                           <button
@@ -364,13 +365,9 @@ function SurgeonDashboard() {
                           </button>
                         </td>
                         <td className="px-3 overflow-hidden text-ellipsis whitespace-nowrap">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setSelectedPatientId(p.id) }}
-                            onMouseEnter={() => fetchPatient(p.id)}
-                            className="text-primary hover:underline text-[16px] leading-[24px] font-normal text-left truncate max-w-full cursor-pointer"
-                          >
+                          <span className="text-primary text-[16px] leading-[24px] font-normal truncate max-w-full">
                             {shortenName(p.full_name)}
-                          </button>
+                          </span>
                         </td>
                         <td className="px-3 text-[16px] leading-[24px] font-normal text-text overflow-hidden text-ellipsis whitespace-nowrap">
                           {p.notes || '—'}
