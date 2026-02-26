@@ -105,6 +105,15 @@ const ROLE_LABELS: Record<string, string> = {
   surgeon: 'Хирург',
 }
 
+/** "Иванов Петр Сергеевич" → "Иванов П. С." */
+function shortenName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/)
+  if (parts.length <= 1) return fullName
+  const lastName = parts[0]
+  const initials = parts.slice(1).map((p) => `${p.charAt(0).toUpperCase()}.`).join(' ')
+  return `${lastName} ${initials}`
+}
+
 /* ── Component ── */
 
 function Sidebar() {
@@ -192,7 +201,7 @@ function Sidebar() {
                   textOverflow: 'ellipsis',
                 }}
               >
-                {user?.full_name}
+                {user?.full_name ? shortenName(user.full_name) : ''}
               </div>
               <div
                 style={{

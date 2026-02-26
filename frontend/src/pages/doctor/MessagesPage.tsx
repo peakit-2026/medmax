@@ -7,6 +7,8 @@ import {
   Folder,
   X,
   Send,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react'
 import videoIcon from '../../assets/icons/camera.svg'
 import api from '../../api/client'
@@ -357,9 +359,11 @@ function InlineStatus({ time, isOwn, readAt }: { time: string; isOwn: boolean; r
 function MessageBubble({
   message,
   isOwn,
+  highlight,
 }: {
   message: ChatMessage
   isOwn: boolean
+  highlight?: boolean
 }) {
   const time = formatTime(message.created_at)
   const hasReply = !!(message.reply_to_content && message.reply_to_sender_name)
@@ -368,12 +372,16 @@ function MessageBubble({
 
   return (
     <div
+      id={`msg-${message.id}`}
       style={{
         display: 'flex',
         justifyContent: isOwn ? 'flex-end' : 'flex-start',
         alignItems: 'flex-end',
         gap: 24,
         width: '100%',
+        transition: 'background 0.3s ease',
+        borderRadius: 20,
+        background: highlight ? 'rgba(62,135,255,0.08)' : 'transparent',
       }}
     >
       {!isOwn && (
@@ -561,11 +569,15 @@ function MessagesPage() {
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
   const [sending, setSending] = useState(false)
   const [loadingOlder, setLoadingOlder] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchIndex, setSearchIndex] = useState(0)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const basePath = user?.role === 'surgeon' ? '/surgeon/messages' : '/doctor/messages'
 
@@ -677,6 +689,63 @@ function MessagesPage() {
     [activeConversationId, hasMore, loadingOlder, loadOlderMessages]
   )
 
+  // ── Search logic ──────────────────────────────────────────────────────
+  const query = searchQuery.toLowerCase().trim()
+  const searchResultIds = query
+    ? activeMessages
+        .filter((m) => m.content?.toLowerCase().includes(query))
+        .map((m) => m.id)
+    : []
+
+  const handleToggleSearch = useCallback(() => {
+    setSearchOpen((prev) => {
+      if (prev) {
+        setSearchQuery('')
+        setSearchIndex(0)
+      }
+      return !prev
+    })
+    setTimeout(() => searchInputRef.current?.focus(), 50)
+  }, [])
+
+  const scrollToMessage = useCallback((msgId: string) => {
+    const el = document.getElementById(`msg-${msgId}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [])
+
+  const handleSearchPrev = useCallback(() => {
+    if (searchResultIds.length === 0) return
+    setSearchIndex((prev) => {
+      const next = prev <= 0 ? searchResultIds.length - 1 : prev - 1
+      scrollToMessage(searchResultIds[next])
+      return next
+    })
+  }, [searchResultIds, scrollToMessage])
+
+  const handleSearchNext = useCallback(() => {
+    if (searchResultIds.length === 0) return
+    setSearchIndex((prev) => {
+      const next = prev >= searchResultIds.length - 1 ? 0 : prev + 1
+      scrollToMessage(searchResultIds[next])
+      return next
+    })
+  }, [searchResultIds, scrollToMessage])
+
+  // Scroll to first result when query changes
+  useEffect(() => {
+    if (searchResultIds.length > 0) {
+      setSearchIndex(0)
+      scrollToMessage(searchResultIds[0])
+    }
+  }, [query]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close search when switching conversations
+  useEffect(() => {
+    setSearchOpen(false)
+    setSearchQuery('')
+    setSearchIndex(0)
+  }, [activeConversationId])
+
   return (
     <>
     <div style={{ display: 'flex', height: '100%', fontFamily: 'var(--font-sans)', background: 'white' }}>
@@ -773,6 +842,7 @@ function MessagesPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {/* Search button */}
                 <button
+                  onClick={handleToggleSearch}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -781,9 +851,9 @@ function MessagesPage() {
                     height: 48,
                     borderRadius: 16,
                     border: 'none',
-                    background: 'rgba(120,120,128,0.12)',
+                    background: searchOpen ? 'rgba(0,122,255,0.12)' : 'rgba(120,120,128,0.12)',
                     cursor: 'pointer',
-                    color: '#101012',
+                    color: searchOpen ? '#007aff' : '#101012',
                   }}
                   title="Поиск"
                 >
@@ -817,6 +887,117 @@ function MessagesPage() {
               </div>
             </div>
 
+            {/* Search bar */}
+            {searchOpen && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '12px 24px',
+                  borderBottom: '1px solid rgba(120,120,128,0.16)',
+                  flexShrink: 0,
+                }}
+              >
+                <Search size={18} color="rgba(60,60,67,0.52)" style={{ flexShrink: 0 }} />
+                <input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.shiftKey ? handleSearchPrev() : handleSearchNext()
+                    }
+                    if (e.key === 'Escape') handleToggleSearch()
+                  }}
+                  placeholder="Поиск по сообщениям..."
+                  style={{
+                    flex: 1,
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: 16,
+                    fontWeight: 400,
+                    lineHeight: '24px',
+                    color: '#101012',
+                    background: 'transparent',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                />
+                {query && (
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: 'rgba(60,60,67,0.52)',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {searchResultIds.length > 0 ? `${searchIndex + 1}/${searchResultIds.length}` : 'Не найдено'}
+                  </span>
+                )}
+                <button
+                  onClick={handleSearchPrev}
+                  disabled={searchResultIds.length === 0}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'none',
+                    cursor: searchResultIds.length > 0 ? 'pointer' : 'default',
+                    color: searchResultIds.length > 0 ? '#101012' : 'rgba(60,60,67,0.24)',
+                    flexShrink: 0,
+                    padding: 0,
+                  }}
+                >
+                  <ChevronUp size={18} />
+                </button>
+                <button
+                  onClick={handleSearchNext}
+                  disabled={searchResultIds.length === 0}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'none',
+                    cursor: searchResultIds.length > 0 ? 'pointer' : 'default',
+                    color: searchResultIds.length > 0 ? '#101012' : 'rgba(60,60,67,0.24)',
+                    flexShrink: 0,
+                    padding: 0,
+                  }}
+                >
+                  <ChevronDown size={18} />
+                </button>
+                <button
+                  onClick={handleToggleSearch}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 28,
+                    height: 28,
+                    borderRadius: 8,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    color: 'rgba(60,60,67,0.52)',
+                    flexShrink: 0,
+                    padding: 0,
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+
             {/* Messages area */}
             <div
               ref={messagesContainerRef}
@@ -836,6 +1017,7 @@ function MessagesPage() {
                     key={msg.id}
                     message={msg}
                     isOwn={msg.sender_id === user?.id}
+                    highlight={searchResultIds.length > 0 && msg.id === searchResultIds[searchIndex]}
                   />
                 ))}
                 <div ref={messagesEndRef} />
