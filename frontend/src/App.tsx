@@ -8,7 +8,6 @@ import DoctorDashboard from './pages/doctor/DoctorDashboard'
 import IOLCalculator from './pages/doctor/IOLCalculator'
 import IOLCalculatorPage from './pages/doctor/IOLCalculatorPage'
 import SurgeonDashboard from './pages/surgeon/SurgeonDashboard'
-import PatientReview from './pages/surgeon/PatientReview'
 import PatientLookup from './pages/patient/PatientLookup'
 import PatientStatus from './pages/patient/PatientStatus'
 
@@ -37,7 +36,6 @@ function App() {
         <Route element={<ProtectedRoute allowedRoles={['surgeon']} />}>
           <Route element={<Layout />}>
             <Route path="/surgeon" element={<SurgeonDashboard />} />
-            <Route path="/surgeon/patient/:id" element={<PatientReview />} />
           </Route>
         </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />

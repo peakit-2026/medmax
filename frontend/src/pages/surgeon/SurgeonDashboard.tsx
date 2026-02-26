@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Search, Upload, ArrowUpDown, ArrowUp, ArrowDown, Check, X } from 'lucide-react'
 import { usePatientStore } from '../../store/patients'
 import { getDisplayStatus, shortenName } from '../../types'
 import type { DisplayStatus } from '../../types'
+import PatientReview from './PatientReview'
 
 type SortField = 'full_name' | 'region' | 'diagnosis_text' | 'operation_type' | 'created_at' | 'action'
 type SortDir = 'asc' | 'desc'
@@ -25,8 +25,7 @@ function SurgeonDashboard() {
   const fetchPatient = usePatientStore((s) => s.fetchPatient)
   const approvePatient = usePatientStore((s) => s.approvePatient)
   const rejectPatient = usePatientStore((s) => s.rejectPatient)
-  const navigate = useNavigate()
-
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<Tab>('all')
   const [sortField, setSortField] = useState<SortField>('full_name')
@@ -313,7 +312,7 @@ function SurgeonDashboard() {
                         key={p.id}
                         className="h-[64px] border-b border-border cursor-pointer hover:bg-surface-secondary transition-colors"
                         style={{ background: rowBg }}
-                        onClick={() => navigate(`/surgeon/patient/${p.id}`)}
+                        onClick={() => setSelectedPatientId(p.id)}
                       >
                         <td style={{ paddingLeft: '16px', paddingRight: '12px' }}>
                           <button
@@ -332,7 +331,7 @@ function SurgeonDashboard() {
                         </td>
                         <td className="px-3 overflow-hidden text-ellipsis whitespace-nowrap">
                           <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/surgeon/patient/${p.id}`) }}
+                            onClick={(e) => { e.stopPropagation(); setSelectedPatientId(p.id) }}
                             onMouseEnter={() => fetchPatient(p.id)}
                             className="text-primary hover:underline text-[16px] leading-[24px] font-normal text-left truncate max-w-full cursor-pointer"
                           >
@@ -419,6 +418,13 @@ function SurgeonDashboard() {
           </div>
         </div>
       </div>
+
+      {selectedPatientId && (
+        <PatientReview
+          patientId={selectedPatientId}
+          onClose={() => setSelectedPatientId(null)}
+        />
+      )}
     </div>
   )
 }

@@ -1,305 +1,641 @@
-import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import StatusBadge from '../../components/StatusBadge'
-import { getDisplayStatus } from '../../types'
-import MediaGallery from '../../components/MediaGallery'
-import VideoCall from '../../components/VideoCall'
-import { usePatientStore, selectComments, selectIolCalcs } from '../../store/patients'
+import { useEffect, useState } from 'react'
+import {
+  X,
+  User,
+  Calendar,
+  FileText,
+  Search,
+  CircleCheckBig,
+  Eye,
+  MessageCircle,
+  Send,
+} from 'lucide-react'
+import { usePatientStore, selectComments, selectMedia } from '../../store/patients'
+import { getDisplayStatus, shortenName } from '../../types'
+import type { ChecklistItem, Comment, MediaFile } from '../../types'
+import ImageViewer from '../../components/ImageViewer'
 
-function PatientReview() {
-  const { id } = useParams()
-  const patient = usePatientStore((s) => s.patients[id!])
-  const comments = usePatientStore(selectComments(id!))
-  const iolCalcs = usePatientStore(selectIolCalcs(id!))
+interface Props {
+  patientId: string
+  onClose: () => void
+}
+
+const statusConfig: Record<string, { color: string; label: string }> = {
+  red: { color: '#FF3B30', label: 'Требует внимания' },
+  yellow: { color: '#FFD000', label: 'В подготовке' },
+  green: { color: '#34C759', label: 'Готов к операции' },
+  date_set: { color: '#3E87FF', label: 'Назначена дата' },
+}
+
+function PatientReview({ patientId, onClose }: Props) {
+  const patient = usePatientStore((s) => s.patients[patientId])
   const fetchPatient = usePatientStore((s) => s.fetchPatient)
   const fetchComments = usePatientStore((s) => s.fetchComments)
-  const fetchIol = usePatientStore((s) => s.fetchIol)
+  const fetchMedia = usePatientStore((s) => s.fetchMedia)
   const fetchPatients = usePatientStore((s) => s.fetchPatients)
   const addComment = usePatientStore((s) => s.addComment)
   const approvePatient = usePatientStore((s) => s.approvePatient)
   const rejectPatient = usePatientStore((s) => s.rejectPatient)
+  const comments = usePatientStore(selectComments(patientId))
+  const mediaFiles = usePatientStore(selectMedia(patientId))
 
+  const [visible, setVisible] = useState(false)
+  const [viewerSrc, setViewerSrc] = useState<string | null>(null)
   const [newComment, setNewComment] = useState('')
-  const [showApproveForm, setShowApproveForm] = useState(false)
+
+  // Modals
+  const [showApproveModal, setShowApproveModal] = useState(false)
+  const [showRejectModal, setShowRejectModal] = useState(false)
   const [operationDate, setOperationDate] = useState('')
   const [rejectComment, setRejectComment] = useState('')
-  const [showRejectForm, setShowRejectForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [showVideo, setShowVideo] = useState(false)
 
   useEffect(() => {
-    fetchPatient(id!)
-    fetchComments(id!)
-    fetchIol(id!)
-  }, [id])
+    fetchPatient(patientId)
+    fetchComments(patientId)
+    fetchMedia(patientId)
+  }, [patientId])
 
-  const handleAddComment = (e: React.SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true))
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
+
+  const handleClose = () => {
+    setVisible(false)
+    setTimeout(onClose, 300)
+  }
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showApproveModal) { setShowApproveModal(false); return }
+        if (showRejectModal) { setShowRejectModal(false); return }
+        handleClose()
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [showApproveModal, showRejectModal])
+
+  const handleAddComment = () => {
     if (!newComment.trim()) return
-    addComment(id!, newComment)
+    addComment(patientId, newComment)
     setNewComment('')
   }
 
-  const handleApprove = async (e: React.SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const handleApprove = async () => {
     setSubmitting(true)
     try {
-      await approvePatient(id!, operationDate || null)
-      setShowApproveForm(false)
+      await approvePatient(patientId, operationDate || null)
+      setShowApproveModal(false)
       setOperationDate('')
+      fetchPatients()
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleReject = async (e: React.SyntheticEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const handleReject = async () => {
     if (!rejectComment.trim()) return
     setSubmitting(true)
     try {
-      await rejectPatient(id!, rejectComment)
-      setShowRejectForm(false)
+      await rejectPatient(patientId, rejectComment)
+      setShowRejectModal(false)
       setRejectComment('')
+      fetchPatients()
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (!patient) return <div className="text-gray-500">Загрузка...</div>
+  if (!patient) {
+    return (
+      <div className="fixed inset-0 z-50">
+        <div
+          className="absolute inset-0 bg-black/20 transition-opacity duration-300"
+          style={{ opacity: visible ? 1 : 0 }}
+          onClick={handleClose}
+        />
+        <div
+          className="absolute right-0 top-0 bottom-0 w-[802px] max-w-full bg-white flex items-center justify-center transition-transform duration-300 ease-out"
+          style={{ transform: visible ? 'translateX(0)' : 'translateX(100%)' }}
+        >
+          <span className="text-text-secondary text-[16px] font-medium">Загрузка...</span>
+        </div>
+      </div>
+    )
+  }
 
-  const completedCount = patient.checklist.filter((c) => c.is_completed).length
-  const totalCount = patient.checklist.length
+  const displayStatus = getDisplayStatus(patient)
+  const sc = statusConfig[displayStatus]
 
   return (
-    <div style={{ padding: '36px 24px' }}>
-      <Link
-        to="/surgeon"
-        onMouseEnter={() => fetchPatients()}
-        className="text-blue-600 hover:text-blue-700 mb-4 inline-block text-sm"
+    <div className="fixed inset-0 z-50">
+      <div
+        className="absolute inset-0 bg-black/20 transition-opacity duration-300"
+        style={{ opacity: visible ? 1 : 0 }}
+        onClick={handleClose}
+      />
+      <div
+        className="absolute right-0 top-0 bottom-0 w-[802px] max-w-full bg-white flex flex-col transition-transform duration-300 ease-out"
+        style={{ transform: visible ? 'translateX(0)' : 'translateX(100%)' }}
       >
-        &larr; К списку пациентов
-      </Link>
+        <div className="flex flex-col h-full" style={{ padding: '36px 24px', gap: '36px' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between shrink-0">
+            <h2
+              className="text-[32px] font-medium leading-[32px] tracking-[-1px] text-text"
+              style={{ fontFeatureSettings: "'ss01' 1" }}
+            >
+              Карточка пациента
+            </h2>
+            <button
+              onClick={handleClose}
+              className="flex items-center justify-center rounded-[16px] bg-fill-tertiary overflow-clip shrink-0 cursor-pointer hover:bg-fill-quaternary transition-colors"
+              style={{ padding: '12px' }}
+            >
+              <X size={24} strokeWidth={2} />
+            </button>
+          </div>
 
-      <div className="flex items-center gap-3 mb-6">
-        <h1 className="text-2xl font-bold">{patient.full_name}</h1>
-        <button
-          onClick={() => setShowVideo(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
-        >
-          Видеоконсультация
-        </button>
-      </div>
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto min-h-0 flex flex-col drawer-scroll" style={{ gap: '36px' }}>
+            {/* Patient info cards */}
+            <div className="flex flex-col shrink-0" style={{ gap: '8px' }}>
+              {/* Row 1: Пациент + Дата рождения */}
+              <div className="flex" style={{ gap: '8px' }}>
+                <InfoCard icon={<User size={24} />} label="Пациент" value={shortenName(patient.full_name)} />
+                <InfoCard icon={<Calendar size={24} />} label="Дата рождения" value={patient.birth_date} />
+              </div>
+              {/* Row 2: СНИЛС + Полис ОМС */}
+              <div className="flex" style={{ gap: '8px' }}>
+                <InfoCard icon={<FileText size={24} />} label="СНИЛС" value={patient.snils ?? '—'} />
+                <InfoCard icon={<FileText size={24} />} label="Полис ОМС" value={patient.insurance_policy ?? '—'} />
+              </div>
+              {/* Row 3: Диагноз + Статус */}
+              <div className="flex" style={{ gap: '8px' }}>
+                <InfoCard icon={<Search size={24} />} label="Диагноз" value={patient.diagnosis_text} />
+                <div
+                  className="flex-1 border border-border rounded-[24px] overflow-clip flex items-start"
+                  style={{ padding: '16px', gap: '16px' }}
+                >
+                  <div className="shrink-0 w-[48px] h-[48px] bg-surface-secondary rounded-[16px] flex items-center justify-center">
+                    <CircleCheckBig size={24} />
+                  </div>
+                  <div className="flex flex-col min-w-0" style={{ gap: '4px' }}>
+                    <span className="text-[16px] font-medium leading-[24px] text-text-secondary">Статус</span>
+                    <div className="flex items-center" style={{ gap: '8px' }}>
+                      <div
+                        className="w-[12px] h-[12px] rounded-full shrink-0"
+                        style={{ backgroundColor: sc?.color }}
+                      />
+                      <span className="text-[20px] font-semibold leading-[20px] tracking-[-0.33px] text-text whitespace-nowrap">
+                        {sc?.label}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Row 4: Тип операции + Врач-офтальмолог */}
+              <div className="flex" style={{ gap: '8px' }}>
+                <InfoCard icon={<Eye size={24} />} label="Тип операции" value={patient.operation_type} />
+                <InfoCard icon={<User size={24} />} label="Врач-офтальмолог" value="—" />
+              </div>
+            </div>
 
-      {showVideo && <VideoCall roomId={patient.id} onClose={() => setShowVideo(false)} />}
+            {/* Comments section */}
+            <div className="flex flex-col shrink-0" style={{ gap: '24px' }}>
+              <h3
+                className="text-[24px] font-medium leading-[24px] tracking-[-0.5px] text-text"
+                style={{ fontFeatureSettings: "'ss01' 1" }}
+              >
+                Комментарии
+              </h3>
+              <div
+                className="border border-border rounded-[24px] overflow-clip flex flex-col"
+                style={{ padding: '16px', gap: '24px' }}
+              >
+                {/* Comments list */}
+                {comments.length > 0 ? (
+                  <div className="flex flex-col max-h-[240px] overflow-y-auto drawer-scroll" style={{ gap: '16px' }}>
+                    {comments.map((comment, i) => (
+                      <CommentItem
+                        key={comment.id}
+                        comment={comment}
+                        showDivider={i < comments.length - 1}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center" style={{ padding: '8px' }}>
+                    <span className="text-[16px] font-medium text-text-secondary">Нет комментариев</span>
+                  </div>
+                )}
 
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 max-w-lg">
-          <span className="text-gray-500 text-sm">Дата рождения:</span>
-          <span>{patient.birth_date}</span>
+                {/* Message input */}
+                <div className="flex items-center" style={{ gap: '0px' }}>
+                  <div
+                    className="flex-1 border border-border rounded-[12px] flex items-center"
+                    style={{ padding: '0' }}
+                  >
+                    <input
+                      type="text"
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment() }}
+                      placeholder="Сообщение"
+                      className="flex-1 bg-transparent text-[16px] leading-[24px] tracking-[-0.25px] text-text placeholder:text-text-tertiary focus:outline-none"
+                      style={{ padding: '16px 12px' }}
+                    />
+                    <button
+                      onClick={handleAddComment}
+                      className="shrink-0 flex items-center justify-center cursor-pointer hover:opacity-70 transition-opacity"
+                      style={{ padding: '16px 12px' }}
+                    >
+                      <Send size={24} className="text-text-secondary" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-          <span className="text-gray-500 text-sm">СНИЛС:</span>
-          <span>{patient.snils ?? '—'}</span>
+            {/* Checklist (read-only) */}
+            <div className="flex flex-col shrink-0" style={{ gap: '24px' }}>
+              <h3
+                className="text-[24px] font-medium leading-[24px] tracking-[-0.5px] text-text"
+                style={{ fontFeatureSettings: "'ss01' 1" }}
+              >
+                Чек-лист подготовки
+              </h3>
+              {patient.checklist.length > 0 ? (
+                <div className="flex flex-col" style={{ gap: '12px' }}>
+                  {patient.checklist.map((item, i) => (
+                    <div key={item.id}>
+                      <SurgeonChecklistRow
+                        item={item}
+                        mediaFiles={mediaFiles}
+                        onViewFile={(src) => setViewerSrc(src)}
+                      />
+                      {i < patient.checklist.length - 1 && (
+                        <div className="w-full h-px bg-border" style={{ marginTop: '12px' }} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-[16px] font-medium text-text-secondary">Чек-лист пуст</span>
+              )}
+            </div>
 
-          <span className="text-gray-500 text-sm">Полис ОМС:</span>
-          <span>{patient.insurance_policy ?? '—'}</span>
+            {/* Media files (view-only) */}
+            <div className="flex flex-col shrink-0" style={{ gap: '24px' }}>
+              <h3
+                className="text-[24px] font-medium leading-[24px] tracking-[-0.5px] text-text"
+                style={{ fontFeatureSettings: "'ss01' 1" }}
+              >
+                Медиафайлы
+              </h3>
+              {mediaFiles.length > 0 ? (
+                <div className="flex flex-wrap items-start" style={{ gap: '8px' }}>
+                  {mediaFiles.map((file) => (
+                    <div
+                      key={file.id}
+                      className="flex items-center overflow-clip rounded-full bg-fill-tertiary cursor-pointer hover:bg-fill-quaternary transition-colors"
+                      style={{ padding: '8px', maxWidth: '220px' }}
+                      onClick={() => setViewerSrc(`/api/media/${file.id}/file`)}
+                    >
+                      <div className="w-[24px] h-[24px] rounded-[8px] border border-border shrink-0 overflow-clip">
+                        <img
+                          src={`/api/media/${file.id}/thumb`}
+                          className="w-full h-full object-cover"
+                          alt=""
+                        />
+                      </div>
+                      <span
+                        className="text-[16px] font-medium leading-[24px] text-text truncate"
+                        style={{ padding: '0 8px' }}
+                      >
+                        {file.file_name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-[16px] font-medium text-text-secondary">Нет файлов</span>
+              )}
+            </div>
+          </div>
 
-          <span className="text-gray-500 text-sm">Код МКБ-10:</span>
-          <span>{patient.diagnosis_code}</span>
-
-          <span className="text-gray-500 text-sm">Диагноз:</span>
-          <span>{patient.diagnosis_text}</span>
-
-          <span className="text-gray-500 text-sm">Тип операции:</span>
-          <span>{patient.operation_type}</span>
-
-          <span className="text-gray-500 text-sm">Статус:</span>
-          <span>
-            <StatusBadge status={getDisplayStatus(patient)} />
-          </span>
-
-          <span className="text-gray-500 text-sm">Дата операции:</span>
-          <span>{patient.operation_date ?? '—'}</span>
-
-          {patient.notes && (
-            <>
-              <span className="text-gray-500 text-sm">Примечания:</span>
-              <span>{patient.notes}</span>
-            </>
-          )}
+          {/* Bottom action buttons */}
+          <div className="flex shrink-0" style={{ gap: '8px' }}>
+            {/* Написать врачу */}
+            <button
+              className="flex-1 flex items-center justify-center overflow-clip rounded-[16px] bg-fill-tertiary cursor-pointer hover:bg-fill-quaternary transition-colors"
+              style={{ padding: '16px' }}
+            >
+              <MessageCircle size={24} />
+              <span className="text-[16px] font-medium leading-[24px] text-text" style={{ padding: '0 8px' }}>
+                Написать врачу
+              </span>
+            </button>
+            {/* Отклонить */}
+            <button
+              onClick={() => { setShowRejectModal(true); setShowApproveModal(false) }}
+              className="flex-1 flex items-center justify-center overflow-clip text-white rounded-[16px] relative cursor-pointer hover:brightness-110 transition-all"
+              style={{
+                padding: '16px',
+                backgroundImage:
+                  'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%), linear-gradient(90deg, #FF3B30 0%, #FF3B30 100%)',
+              }}
+            >
+              <span className="text-[16px] font-medium leading-[24px] text-white" style={{ padding: '0 8px' }}>
+                Отклонить
+              </span>
+              <div
+                className="absolute inset-0 pointer-events-none rounded-[inherit]"
+                style={{ boxShadow: 'inset 0px -1px 1px 0px rgba(16,16,18,0.12)' }}
+              />
+            </button>
+            {/* Подтвердить */}
+            <button
+              onClick={() => { setShowApproveModal(true); setShowRejectModal(false) }}
+              className="flex-1 flex items-center justify-center overflow-clip text-white rounded-[16px] relative cursor-pointer hover:brightness-110 transition-all"
+              style={{
+                padding: '16px',
+                backgroundImage:
+                  'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%), linear-gradient(90deg, #007AFF 0%, #007AFF 100%)',
+              }}
+            >
+              <span className="text-[16px] font-medium leading-[24px] text-white" style={{ padding: '0 8px' }}>
+                Подтвердить
+              </span>
+              <div
+                className="absolute inset-0 pointer-events-none rounded-[inherit]"
+                style={{ boxShadow: 'inset 0px -1px 1px 0px rgba(16,16,18,0.12)' }}
+              />
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">
-          Чек-лист ({completedCount}/{totalCount})
-        </h2>
-        {totalCount === 0 ? (
-          <p className="text-gray-500">Чек-лист пуст</p>
-        ) : (
-          <ul className="flex flex-col gap-1">
-            {patient.checklist.map((item) => (
-              <li key={item.id} className="flex items-center gap-2 py-1">
-                <span className={item.is_completed ? 'text-green-600' : 'text-gray-400'}>
-                  {item.is_completed ? '[x]' : '[ ]'}
-                </span>
-                <span className={item.is_completed ? 'text-gray-500' : ''}>{item.title}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <MediaGallery patientId={patient.id} />
-      </div>
-
-      {iolCalcs.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Расчёты ИОЛ</h2>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b text-left text-gray-500">
-                <th className="px-4 py-3">Дата</th>
-                <th className="px-4 py-3">Глаз</th>
-                <th className="px-4 py-3">Формула</th>
-                <th className="px-4 py-3">K1/K2</th>
-                <th className="px-4 py-3">AL</th>
-                <th className="px-4 py-3">ИОЛ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {iolCalcs.map((calc) => (
-                <tr key={calc.id} className="border-b">
-                  <td className="px-4 py-3">
-                    {new Date(calc.created_at).toLocaleDateString('ru-RU')}
-                  </td>
-                  <td className="px-4 py-3">{calc.eye === 'right' ? 'OD' : 'OS'}</td>
-                  <td className="px-4 py-3">{calc.formula === 'srk_t' ? 'SRK/T' : 'Haigis'}</td>
-                  <td className="px-4 py-3">
-                    {calc.k1}/{calc.k2}
-                  </td>
-                  <td className="px-4 py-3">{calc.axial_length}</td>
-                  <td className="px-4 py-3 font-semibold">{calc.recommended_iol.toFixed(1)} D</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Комментарии</h2>
-        {comments.length === 0 ? (
-          <p className="text-gray-500 text-sm mb-4">Нет комментариев</p>
-        ) : (
-          <ul className="flex flex-col gap-2 mb-4">
-            {comments.map((c) => (
-              <li key={c.id} className="border border-gray-200 rounded p-3">
-                <p>{c.content}</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {new Date(c.created_at).toLocaleString('ru-RU')}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-        <form onSubmit={handleAddComment} className="flex gap-2">
-          <input
-            type="text"
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Написать комментарий..."
-            className="border border-gray-300 px-3 py-2 rounded flex-1"
-          />
-          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-            Отправить
-          </button>
-        </form>
-      </div>
-
-      <div className="flex gap-3 mb-6">
-        <button
-          onClick={() => {
-            setShowApproveForm(true)
-            setShowRejectForm(false)
-          }}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
-          Подтвердить готовность
-        </button>
-        <button
-          onClick={() => {
-            setShowRejectForm(true)
-            setShowApproveForm(false)
-          }}
-          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-        >
-          Вернуть на доработку
-        </button>
-      </div>
-
-      {showApproveForm && (
-        <div className="bg-white rounded-lg shadow p-6 mb-6 max-w-md">
-          <form onSubmit={handleApprove}>
-            <h3 className="font-semibold mb-4">Подтверждение готовности</h3>
-            <label className="flex flex-col gap-1 mb-4">
-              <span className="text-sm text-gray-700">Дата операции (необязательно)</span>
+      {/* Approve modal */}
+      {showApproveModal && (
+        <ModalOverlay onClose={() => setShowApproveModal(false)}>
+          <div
+            className="bg-white rounded-[24px] flex flex-col"
+            style={{ width: '420px', padding: '24px', gap: '24px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              className="text-[24px] font-medium leading-[24px] tracking-[-0.5px] text-text"
+              style={{ fontFeatureSettings: "'ss01' 1" }}
+            >
+              Подтверждение
+            </h3>
+            <p className="text-[16px] font-medium leading-[24px] text-text-secondary">
+              Выберите дату операции для пациента (необязательно)
+            </p>
+            <div className="flex flex-col" style={{ gap: '8px' }}>
+              <label className="text-[14px] font-medium leading-[12px] text-text-secondary">
+                Дата операции
+              </label>
               <input
                 type="date"
                 value={operationDate}
                 onChange={(e) => setOperationDate(e.target.value)}
-                className="border border-gray-300 px-3 py-2 rounded w-full"
+                className="border border-border rounded-[12px] text-[16px] leading-[24px] text-text focus:outline-none focus:border-primary bg-white"
+                style={{ padding: '16px 12px' }}
               />
-            </label>
-            <div className="flex gap-3">
+            </div>
+            <div className="flex" style={{ gap: '8px' }}>
               <button
-                type="submit"
-                disabled={submitting}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+                onClick={() => setShowApproveModal(false)}
+                className="flex-1 flex items-center justify-center overflow-clip rounded-[16px] bg-fill-tertiary cursor-pointer hover:bg-fill-quaternary transition-colors"
+                style={{ padding: '16px' }}
               >
-                Подтвердить
+                <span className="text-[16px] font-medium leading-[24px] text-text">Отмена</span>
               </button>
               <button
-                type="button"
-                onClick={() => setShowApproveForm(false)}
-                className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
+                onClick={handleApprove}
+                disabled={submitting}
+                className="flex-1 flex items-center justify-center overflow-clip text-white rounded-[16px] relative disabled:opacity-60 cursor-pointer hover:brightness-110 transition-all"
+                style={{
+                  padding: '16px',
+                  backgroundImage:
+                    'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%), linear-gradient(90deg, #007AFF 0%, #007AFF 100%)',
+                }}
               >
-                Отмена
+                <span className="text-[16px] font-medium leading-[24px] text-white">
+                  {submitting ? 'Подтверждение...' : 'Подтвердить'}
+                </span>
+                <div
+                  className="absolute inset-0 pointer-events-none rounded-[inherit]"
+                  style={{ boxShadow: 'inset 0px -1px 1px 0px rgba(16,16,18,0.12)' }}
+                />
               </button>
             </div>
-          </form>
-        </div>
+          </div>
+        </ModalOverlay>
       )}
 
-      {showRejectForm && (
-        <div className="bg-white rounded-lg shadow p-6 mb-6 max-w-md">
-          <form onSubmit={handleReject}>
-            <h3 className="font-semibold mb-4">Возврат на доработку</h3>
-            <textarea
-              value={rejectComment}
-              onChange={(e) => setRejectComment(e.target.value)}
-              placeholder="Укажите причину..."
-              required
-              rows={3}
-              className="border border-gray-300 px-3 py-2 rounded w-full mb-4"
-            />
-            <div className="flex gap-3">
+      {/* Reject modal */}
+      {showRejectModal && (
+        <ModalOverlay onClose={() => setShowRejectModal(false)}>
+          <div
+            className="bg-white rounded-[24px] flex flex-col"
+            style={{ width: '420px', padding: '24px', gap: '24px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              className="text-[24px] font-medium leading-[24px] tracking-[-0.5px] text-text"
+              style={{ fontFeatureSettings: "'ss01' 1" }}
+            >
+              Отклонение
+            </h3>
+            <p className="text-[16px] font-medium leading-[24px] text-text-secondary">
+              Укажите причину отклонения пациента
+            </p>
+            <div className="flex flex-col" style={{ gap: '8px' }}>
+              <label className="text-[14px] font-medium leading-[12px] text-text-secondary">
+                Комментарий
+              </label>
+              <textarea
+                value={rejectComment}
+                onChange={(e) => setRejectComment(e.target.value)}
+                placeholder="Укажите причину..."
+                rows={3}
+                className="border border-border rounded-[12px] text-[16px] leading-[24px] text-text focus:outline-none focus:border-primary bg-white resize-none placeholder:text-text-tertiary"
+                style={{ padding: '16px 12px' }}
+              />
+            </div>
+            <div className="flex" style={{ gap: '8px' }}>
               <button
-                type="submit"
-                disabled={submitting}
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50"
+                onClick={() => setShowRejectModal(false)}
+                className="flex-1 flex items-center justify-center overflow-clip rounded-[16px] bg-fill-tertiary cursor-pointer hover:bg-fill-quaternary transition-colors"
+                style={{ padding: '16px' }}
               >
-                Вернуть
+                <span className="text-[16px] font-medium leading-[24px] text-text">Отмена</span>
               </button>
               <button
-                type="button"
-                onClick={() => setShowRejectForm(false)}
-                className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
+                onClick={handleReject}
+                disabled={submitting || !rejectComment.trim()}
+                className="flex-1 flex items-center justify-center overflow-clip text-white rounded-[16px] relative disabled:opacity-60 cursor-pointer hover:brightness-110 transition-all"
+                style={{
+                  padding: '16px',
+                  backgroundImage:
+                    'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%), linear-gradient(90deg, #FF3B30 0%, #FF3B30 100%)',
+                }}
               >
-                Отмена
+                <span className="text-[16px] font-medium leading-[24px] text-white">
+                  {submitting ? 'Отклонение...' : 'Отклонить'}
+                </span>
+                <div
+                  className="absolute inset-0 pointer-events-none rounded-[inherit]"
+                  style={{ boxShadow: 'inset 0px -1px 1px 0px rgba(16,16,18,0.12)' }}
+                />
               </button>
             </div>
-          </form>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {viewerSrc && <ImageViewer src={viewerSrc} onClose={() => setViewerSrc(null)} />}
+    </div>
+  )
+}
+
+/* ─── Sub-components ─── */
+
+function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center"
+      onClick={onClose}
+    >
+      {children}
+    </div>
+  )
+}
+
+function InfoCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div
+      className="flex-1 border border-border rounded-[24px] overflow-clip flex items-start"
+      style={{ padding: '16px', gap: '16px' }}
+    >
+      <div className="shrink-0 w-[48px] h-[48px] bg-surface-secondary rounded-[16px] flex items-center justify-center">
+        {icon}
+      </div>
+      <div className="flex flex-col min-w-0" style={{ gap: '4px' }}>
+        <span className="text-[16px] font-medium leading-[24px] text-text-secondary">{label}</span>
+        <span className="text-[20px] font-semibold leading-[20px] tracking-[-0.33px] text-text break-words">
+          {value}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function CommentItem({ comment, showDivider }: { comment: Comment; showDivider: boolean }) {
+  const date = new Date(comment.created_at)
+  const formatted = `${date.toLocaleDateString('ru-RU')} в ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`
+  const name = comment.author_name || 'Хирург'
+  const initials = name[0]?.toUpperCase() || 'Д'
+
+  return (
+    <>
+      <div className="flex items-start" style={{ gap: '8px' }}>
+        <div
+          className="shrink-0 w-[32px] h-[32px] rounded-full flex items-center justify-center text-white text-[14px] font-bold"
+          style={{ background: 'linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%)' }}
+        >
+          {initials}
+        </div>
+        <div className="flex flex-col flex-1 min-w-0" style={{ gap: '8px' }}>
+          <div className="flex items-center" style={{ gap: '8px' }}>
+            <span className="text-[16px] font-medium leading-[24px] text-text whitespace-nowrap">
+              {shortenName(name)}
+            </span>
+            <span className="text-[14px] font-medium leading-[12px] text-text-secondary whitespace-nowrap">
+              {formatted}
+            </span>
+          </div>
+          <span className="text-[14px] font-medium leading-[12px] text-text-secondary">
+            {comment.content}
+          </span>
+        </div>
+      </div>
+      {showDivider && <div className="w-full h-px bg-border" />}
+    </>
+  )
+}
+
+function SurgeonChecklistRow({
+  item,
+  mediaFiles,
+  onViewFile,
+}: {
+  item: ChecklistItem
+  mediaFiles: MediaFile[]
+  onViewFile: (src: string) => void
+}) {
+  const linkedMedia = item.item_type === 'file_upload' && item.file_path
+    ? mediaFiles.find((m) => m.file_path === item.file_path)
+    : null
+
+  return (
+    <div className="flex items-center justify-between" style={{ minHeight: '40px' }}>
+      {/* Left: Checkbox (disabled) + label */}
+      <div className="flex items-center shrink-0" style={{ gap: '12px' }}>
+        <div
+          className="w-[20px] h-[20px] rounded-[6px] flex items-center justify-center shrink-0"
+          style={
+            item.is_completed
+              ? { backgroundColor: '#007AFF', border: '1.5px solid #007AFF' }
+              : { backgroundColor: 'rgba(120,120,128,0.12)', borderRadius: '6px' }
+          }
+        >
+          {item.is_completed && (
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
+        <span
+          className="text-[20px] font-medium leading-[20px] tracking-[-0.33px]"
+          style={{ color: item.is_completed ? '#101012' : 'rgba(60,60,67,0.32)' }}
+        >
+          {item.title}
+        </span>
+      </div>
+
+      {/* Right: File pill if uploaded */}
+      {item.item_type === 'file_upload' && item.file_path && (
+        <div
+          className="flex items-center overflow-clip rounded-full bg-fill-tertiary shrink-0 cursor-pointer hover:bg-fill-quaternary transition-colors"
+          style={{ padding: '8px', maxWidth: '260px' }}
+          onClick={() => {
+            if (linkedMedia) onViewFile(`/api/media/${linkedMedia.id}/file`)
+          }}
+        >
+          <div className="w-[24px] h-[24px] rounded-[8px] border border-border shrink-0 overflow-clip">
+            {linkedMedia ? (
+              <img
+                src={`/api/media/${linkedMedia.id}/thumb`}
+                className="w-full h-full object-cover"
+                alt=""
+              />
+            ) : (
+              <div className="w-full h-full bg-surface-secondary" />
+            )}
+          </div>
+          <span className="text-[16px] font-medium leading-[24px] text-text truncate" style={{ padding: '0 8px' }}>
+            {linkedMedia?.file_name || item.file_path.split('/').pop() || 'Файл'}
+          </span>
         </div>
       )}
     </div>
