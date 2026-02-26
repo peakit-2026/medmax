@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/auth'
+import { animate, createSpring } from 'animejs'
 
 /* ── Inline SVG icons from Figma (Ionicons filled) ── */
 
@@ -121,6 +122,8 @@ interface SidebarProps {
   onClose?: () => void
 }
 
+const springBouncy = createSpring({ mass: 1, stiffness: 120, damping: 10, velocity: 0 })
+
 function Sidebar({ onClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [hoveredNav, setHoveredNav] = useState<string | null>(null)
@@ -134,6 +137,21 @@ function Sidebar({ onClose }: SidebarProps) {
   const role = user?.role ?? 'doctor'
   const navItems = role === 'surgeon' ? surgeonNav : doctorNav
   const initials = user?.full_name?.charAt(0).toUpperCase() ?? '?'
+
+  const avatarRef = useRef<HTMLDivElement>(null)
+
+  // Avatar entrance bounce
+  useEffect(() => {
+    if (avatarRef.current) {
+      animate(avatarRef.current, {
+        scale: [0, 1],
+        rotate: ['-30deg', '0deg'],
+        opacity: [0, 1],
+        duration: 800,
+        ease: springBouncy,
+      })
+    }
+  }, [])
 
   return (
     <aside
@@ -175,6 +193,7 @@ function Sidebar({ onClose }: SidebarProps) {
         {/* Avatar section */}
         <div style={{ display: 'flex', alignItems: 'center', gap: collapsed ? 0 : 12, flexShrink: 0 }}>
           <div
+            ref={avatarRef}
             style={{
               width: 56,
               height: 56,
@@ -244,7 +263,13 @@ function Sidebar({ onClose }: SidebarProps) {
               <button
                 key={item.label}
                 onClick={() => { if (item.path && !item.disabled) { navigate(item.path); onClose?.() } }}
-                onMouseEnter={() => !item.disabled && setHoveredNav(item.label)}
+                onMouseEnter={(e) => {
+                  if (!item.disabled) {
+                    setHoveredNav(item.label)
+                    const iconEl = (e.currentTarget as HTMLElement).querySelector('svg')
+                    if (iconEl) animate(iconEl, { scale: [1, 1.25, 1], duration: 500, ease: springBouncy })
+                  }
+                }}
                 onMouseLeave={() => setHoveredNav(null)}
                 title={collapsed ? item.label : undefined}
                 style={{
@@ -300,7 +325,11 @@ function Sidebar({ onClose }: SidebarProps) {
       {/* ── Exit button ── */}
       <button
         onClick={logout}
-        onMouseEnter={() => setExitHover(true)}
+        onMouseEnter={(e) => {
+          setExitHover(true)
+          const iconEl = (e.currentTarget as HTMLElement).querySelector('svg')
+          if (iconEl) animate(iconEl, { rotate: [0, -12, 12, -8, 8, -4, 0], duration: 500, ease: 'outQuad' })
+        }}
         onMouseLeave={() => setExitHover(false)}
         title={collapsed ? 'Выйти из платформы' : undefined}
         style={{

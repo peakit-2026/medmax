@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import {
   X,
   User,
@@ -14,6 +14,7 @@ import { usePatientStore, selectComments, selectMedia } from '../../store/patien
 import { getDisplayStatus, shortenName } from '../../types'
 import type { ChecklistItem, Comment, MediaFile } from '../../types'
 import ImageViewer from '../../components/ImageViewer'
+import { animate, createSpring, stagger } from 'animejs'
 
 interface Props {
   patientId: string
@@ -39,9 +40,11 @@ function PatientReview({ patientId, onClose }: Props) {
   const comments = usePatientStore(selectComments(patientId))
   const mediaFiles = usePatientStore(selectMedia(patientId))
 
-  const [visible, setVisible] = useState(false)
   const [viewerSrc, setViewerSrc] = useState<string | null>(null)
   const [newComment, setNewComment] = useState('')
+  const drawerPanelRef = useRef<HTMLDivElement>(null)
+  const backdropRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   // Modals
   const [showApproveModal, setShowApproveModal] = useState(false)
@@ -57,18 +60,71 @@ function PatientReview({ patientId, onClose }: Props) {
     fetchMedia(patientId)
   }, [patientId])
 
+  const springDrawer = createSpring({ mass: 1, stiffness: 140, damping: 16, velocity: 0 })
+
   useEffect(() => {
-    requestAnimationFrame(() => setVisible(true))
     document.body.style.overflow = 'hidden'
+
+    if (backdropRef.current) {
+      animate(backdropRef.current, { opacity: [0, 1], duration: 300, ease: 'outQuad' })
+    }
+    if (drawerPanelRef.current) {
+      animate(drawerPanelRef.current, {
+        translateX: ['100%', '0%'],
+        duration: 600,
+        ease: springDrawer,
+      })
+    }
+    requestAnimationFrame(() => {
+      if (contentRef.current) {
+        const children = Array.from(contentRef.current.children)
+        if (children.length) {
+          children.forEach((c) => {
+            ;(c as HTMLElement).style.opacity = '0'
+            ;(c as HTMLElement).style.transform = 'translateY(16px)'
+          })
+          animate(children, {
+            opacity: [0, 1],
+            translateY: [16, 0],
+            delay: stagger(60, { start: 200 }),
+            duration: 500,
+            ease: springDrawer,
+          })
+        }
+
+        const icons = Array.from(contentRef.current.querySelectorAll('svg'))
+        if (icons.length) {
+          const iconSpring = createSpring({ mass: 1, stiffness: 100, damping: 8, velocity: 0 })
+          animate(icons, {
+            scale: [1, 1.2, 0.9, 1.05, 1],
+            rotate: ['0deg', '360deg'],
+            translateY: [0, -5, 2, 0],
+            delay: stagger(50, { start: 100 }),
+            duration: 800,
+            ease: iconSpring,
+          })
+        }
+      }
+    })
+
     return () => {
       document.body.style.overflow = ''
     }
   }, [])
 
-  const handleClose = () => {
-    setVisible(false)
+  const handleClose = useCallback(() => {
+    if (backdropRef.current) {
+      animate(backdropRef.current, { opacity: [1, 0], duration: 250, ease: 'inQuad' })
+    }
+    if (drawerPanelRef.current) {
+      animate(drawerPanelRef.current, {
+        translateX: ['0%', '100%'],
+        duration: 300,
+        ease: 'inQuart',
+      })
+    }
     setTimeout(onClose, 300)
-  }
+  }, [onClose])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -118,13 +174,15 @@ function PatientReview({ patientId, onClose }: Props) {
     return (
       <div className="fixed inset-0 z-50">
         <div
-          className="absolute inset-0 bg-black/20 transition-opacity duration-300"
-          style={{ opacity: visible ? 1 : 0 }}
+          ref={backdropRef}
+          className="absolute inset-0 bg-black/20"
+          style={{ opacity: 0 }}
           onClick={handleClose}
         />
         <div
-          className="absolute right-0 top-0 bottom-0 w-[802px] max-w-full bg-white flex items-center justify-center transition-transform duration-300 ease-out"
-          style={{ transform: visible ? 'translateX(0)' : 'translateX(100%)' }}
+          ref={drawerPanelRef}
+          className="absolute right-0 top-0 bottom-0 w-[802px] max-w-full bg-white flex items-center justify-center"
+          style={{ transform: 'translateX(100%)' }}
         >
           <span className="text-text-secondary text-[16px] font-medium">Загрузка...</span>
         </div>
@@ -138,15 +196,17 @@ function PatientReview({ patientId, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50">
       <div
-        className="absolute inset-0 bg-black/20 transition-opacity duration-300"
-        style={{ opacity: visible ? 1 : 0 }}
+        ref={backdropRef}
+        className="absolute inset-0 bg-black/20"
+        style={{ opacity: 0 }}
         onClick={handleClose}
       />
       <div
-        className="absolute right-0 top-0 bottom-0 w-[802px] max-w-full bg-white flex flex-col transition-transform duration-300 ease-out"
-        style={{ transform: visible ? 'translateX(0)' : 'translateX(100%)' }}
+        ref={drawerPanelRef}
+        className="absolute right-0 top-0 bottom-0 w-[802px] max-w-full bg-white flex flex-col"
+        style={{ transform: 'translateX(100%)' }}
       >
-        <div className="flex flex-col h-full" style={{ padding: '36px 24px', gap: '36px' }}>
+        <div ref={contentRef} className="flex flex-col h-full" style={{ padding: '36px 24px', gap: '36px' }}>
           {/* Header */}
           <div className="flex items-center justify-between shrink-0">
             <h2

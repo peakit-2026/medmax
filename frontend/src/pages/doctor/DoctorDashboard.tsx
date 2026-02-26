@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Search, Upload, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import StatusBadge from '../../components/StatusBadge'
 import PatientDrawer from '../../components/PatientDrawer'
@@ -7,6 +7,13 @@ import { usePatientStore } from '../../store/patients'
 import { getDisplayStatus, getLastAction, shortenName } from '../../types'
 import type { DisplayStatus } from '../../types'
 import { exportPatientsToExcel } from '../../utils/exportExcel'
+import {
+  useAnimeEntrance,
+  useAnimeClick,
+  useAnimeCounter,
+  useAnimeTableRows,
+  useAnimeWiggle,
+} from '../../hooks/useAnime'
 
 type SortField = 'full_name' | 'diagnosis_text' | 'operation_type' | 'status' | 'last_action'
 type SortDir = 'asc' | 'desc'
@@ -42,6 +49,24 @@ function DoctorDashboard() {
   const [page, setPage] = useState(1)
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null)
   const [showNewPatient, setShowNewPatient] = useState(false)
+
+  // ── Animation refs ──
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const statsCardRef = useRef<HTMLDivElement>(null)
+  const tableCardRef = useRef<HTMLDivElement>(null)
+  const tbodyRef = useRef<HTMLTableSectionElement>(null)
+  const [searchIconRef, wiggleSearch] = useAnimeWiggle<HTMLSpanElement>()
+  const paginationLeftRef = useRef<HTMLButtonElement>(null)
+  const paginationRightRef = useRef<HTMLButtonElement>(null)
+
+  // ── Entrance animations ──
+  useAnimeEntrance(titleRef, { type: 'bounce-down', delay: 0 })
+  useAnimeEntrance(statsCardRef, { type: 'scale', delay: 100 })
+  useAnimeEntrance(tableCardRef, { type: 'bounce-up', delay: 300 })
+
+  // ── Click animations ──
+  useAnimeClick(paginationLeftRef, { type: 'pop' })
+  useAnimeClick(paginationRightRef, { type: 'pop' })
 
   useEffect(() => {
     fetchPatients()
@@ -91,6 +116,8 @@ function DoctorDashboard() {
   const safePage = Math.min(page, totalPages)
   const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
+  useAnimeTableRows(tbodyRef, [])
+
   useEffect(() => {
     setPage(1)
   }, [search, activeTab])
@@ -139,6 +166,7 @@ function DoctorDashboard() {
     <div className="flex flex-col flex-1 min-h-0 responsive-page" style={{ padding: '36px 24px', gap: '36px' }}>
       {/* Title */}
       <h1
+        ref={titleRef}
         className="text-[32px] font-medium leading-[32px] tracking-[-1px] text-text"
         style={{ fontFeatureSettings: "'ss01' 1" }}
       >
@@ -149,35 +177,37 @@ function DoctorDashboard() {
       <div className="flex flex-col flex-1 min-h-0" style={{ gap: '16px' }}>
         {/* Stats card */}
         <div
+          ref={statsCardRef}
           className="bg-surface border border-border rounded-[24px] grid grid-cols-2 lg:flex lg:items-center shrink-0"
           style={{ minHeight: '120px' }}
         >
-          <StatSection color="#FF3B30" label="Требуется внимание" count={counts.red} />
+          <StatSection color="#FF3B30" label="Требуется внимание" count={counts.red} counterDelay={200} />
           <VerticalDivider className="hidden lg:flex" />
-          <StatSection color="#FFD000" label="В подготовке" count={counts.yellow} />
+          <StatSection color="#FFD000" label="В подготовке" count={counts.yellow} counterDelay={300} />
           <VerticalDivider className="hidden lg:flex" />
-          <StatSection color="#34C759" label="Готов к операции" count={counts.green} />
+          <StatSection color="#34C759" label="Готов к операции" count={counts.green} counterDelay={400} />
           <VerticalDivider className="hidden lg:flex" />
-          <StatSection color="#3E87FF" label="Назначена дата" count={counts.date_set} />
+          <StatSection color="#3E87FF" label="Назначена дата" count={counts.date_set} counterDelay={500} />
         </div>
 
         {/* Table card */}
         <div
+          ref={tableCardRef}
           className="bg-surface border border-border rounded-[24px] flex flex-col flex-1 min-h-0 responsive-card"
           style={{ padding: '24px', gap: '12px' }}
         >
           {/* Search + actions */}
           <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:justify-between" style={{ minHeight: '56px' }}>
             <div className="relative w-full lg:w-[300px]">
-              <Search
-                size={20}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
-              />
+              <span ref={searchIconRef} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary inline-flex">
+                <Search size={20} />
+              </span>
               <input
                 type="text"
                 placeholder="Найти клиента"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onFocus={wiggleSearch}
                 className="w-full border border-border rounded-[12px] bg-surface text-[16px] leading-[24px] focus:outline-none focus:border-primary"
                 style={{ height: '56px', paddingLeft: '40px', paddingRight: '16px' }}
               />
@@ -319,7 +349,7 @@ function DoctorDashboard() {
                     />
                   </tr>
                 </thead>
-                <tbody>
+                <tbody ref={tbodyRef}>
                   {paginated.map((p, i) => {
                     const action = getLastAction(p)
                     const rowBg = i % 2 === 0 ? '#FFFFFF' : '#F7F8FA'
@@ -393,6 +423,7 @@ function DoctorDashboard() {
               </span>
               <div className="flex items-center" style={{ gap: '8px' }}>
                 <button
+                  ref={paginationLeftRef}
                   onClick={() => setPage(Math.max(1, safePage - 1))}
                   disabled={safePage <= 1}
                   className="border border-border rounded-[12px] flex items-center justify-center overflow-clip cursor-pointer hover:bg-surface-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -403,6 +434,7 @@ function DoctorDashboard() {
                   </svg>
                 </button>
                 <button
+                  ref={paginationRightRef}
                   onClick={() => setPage(Math.min(totalPages, safePage + 1))}
                   disabled={safePage >= totalPages}
                   className="border border-border rounded-[12px] flex items-center justify-center overflow-clip cursor-pointer hover:bg-surface-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -441,11 +473,18 @@ function StatSection({
   color,
   label,
   count,
+  counterDelay = 200,
 }: {
   color: string
   label: string
   count: number
+  counterDelay?: number
 }) {
+  const dotRef = useRef<HTMLDivElement>(null)
+  const counterRef = useAnimeCounter(count, { delay: counterDelay })
+
+  useAnimeEntrance(dotRef, { type: 'scale', delay: counterDelay - 100 })
+
   return (
     <div
       className="flex-1 flex flex-col justify-center items-start overflow-clip"
@@ -453,6 +492,7 @@ function StatSection({
     >
       <div className="flex items-center" style={{ gap: '8px' }}>
         <div
+          ref={dotRef}
           className="w-4 h-4 rounded-full shrink-0"
           style={{ backgroundColor: color }}
         />
@@ -461,6 +501,7 @@ function StatSection({
         </span>
       </div>
       <span
+        ref={counterRef as React.RefObject<HTMLSpanElement>}
         className="text-[32px] font-medium leading-[32px] tracking-[-1px] text-text"
         style={{ fontFeatureSettings: "'ss01' 1" }}
       >
