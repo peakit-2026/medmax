@@ -159,7 +159,7 @@ pub async fn list_comments(
 ) -> HttpResponse {
     let patient_id = path.into_inner();
 
-    match Comment::list_by_patient(&state.db, patient_id).await {
+    match Comment::list_with_author(&state.db, patient_id).await {
         Ok(comments) => HttpResponse::Ok().json(comments),
         Err(_) => {
             HttpResponse::InternalServerError().json(serde_json::json!({"error": "Database error"}))

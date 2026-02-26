@@ -28,6 +28,8 @@ pub async fn calculate(
 
     let recommended_iol = match body.formula.as_str() {
         "srk_t" => iol::srk_t(body.axial_length, k_avg, 118.4, body.target_refraction),
+        "holladay_1" => iol::holladay_1(body.axial_length, k_avg, 118.4, body.target_refraction),
+        "hoffer_q" => iol::hoffer_q(body.axial_length, k_avg, 118.4, body.target_refraction),
         "haigis" => iol::haigis(
             body.axial_length,
             k_avg,

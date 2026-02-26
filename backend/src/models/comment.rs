@@ -37,4 +37,25 @@ impl Comment {
         .fetch_all(pool)
         .await
     }
+
+    pub async fn list_with_author(pool: &PgPool, patient_id: Uuid) -> sqlx::Result<Vec<CommentWithAuthor>> {
+        sqlx::query_as::<_, CommentWithAuthor>(
+            "SELECT c.id, c.patient_id, c.author_id, c.content, c.created_at, u.full_name AS author_name \
+             FROM comments c JOIN users u ON c.author_id = u.id \
+             WHERE c.patient_id = $1 ORDER BY c.created_at ASC",
+        )
+        .bind(patient_id)
+        .fetch_all(pool)
+        .await
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct CommentWithAuthor {
+    pub id: Uuid,
+    pub patient_id: Uuid,
+    pub author_id: Uuid,
+    pub content: String,
+    pub created_at: DateTime<Utc>,
+    pub author_name: String,
 }
