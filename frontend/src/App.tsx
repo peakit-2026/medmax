@@ -14,6 +14,7 @@ import SurgeryCalendarPage from './pages/surgeon/SurgeryCalendarPage'
 import PatientLookup from './pages/patient/PatientLookup'
 import PatientStatus from './pages/patient/PatientStatus'
 import VideoCall from './components/VideoCall'
+import { acquireMediaStream } from './hooks/useWebTransport'
 import LandingPage from './pages/LandingPage'
 import NotFoundPage from './pages/NotFoundPage'
 
@@ -24,11 +25,13 @@ function IncomingCallBanner() {
   const dismissIncomingCall = useChatStore((s) => s.dismissIncomingCall)
   const sendCallEnded = useChatStore((s) => s.sendCallEnded)
   const [accepted, setAccepted] = useState(false)
+  const [callStream, setCallStream] = useState<MediaStream | null>(null)
 
   // Reset accepted when incomingCall is dismissed/cleared
   useEffect(() => {
     if (!incomingCall) {
       setAccepted(false)
+      setCallStream(null)
     }
   }, [incomingCall])
 
@@ -42,7 +45,10 @@ function IncomingCallBanner() {
     return () => clearTimeout(timer)
   }, [incomingCall, accepted, sendCallEnded, dismissIncomingCall])
 
-  const handleAccept = useCallback(() => {
+  const handleAccept = useCallback(async () => {
+    // Acquire media in click handler context (critical for mobile browsers)
+    const stream = await acquireMediaStream()
+    setCallStream(stream)
     setAccepted(true)
   }, [])
 
@@ -71,6 +77,7 @@ function IncomingCallBanner() {
       <VideoCall
         roomId={incomingCall.room_id}
         calleeName={incomingCall.caller_name}
+        stream={callStream}
         onClose={handleCallClose}
         onCallEnd={handleCallEnd}
       />

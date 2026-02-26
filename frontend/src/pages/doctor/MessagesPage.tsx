@@ -15,6 +15,7 @@ import api from '../../api/client'
 import { useChatStore, type Conversation, type ChatMessage, type MessageAttachment } from '../../store/chat'
 import { useAuthStore } from '../../store/auth'
 import VideoCall from '../../components/VideoCall'
+import { acquireMediaStream } from '../../hooks/useWebTransport'
 
 /* ── Helpers ─────────────────────────────────────────────────────────── */
 
@@ -566,6 +567,7 @@ function MessagesPage() {
   const [showChat, setShowChat] = useState(false)
   const [showVideoCall, setShowVideoCall] = useState(false)
   const [callRoomId, setCallRoomId] = useState<string | null>(null)
+  const [callStream, setCallStream] = useState<MediaStream | null>(null)
   const [inputText, setInputText] = useState('')
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
@@ -670,9 +672,12 @@ function MessagesPage() {
     setPendingFiles((prev) => prev.filter((_, i) => i !== index))
   }, [])
 
-  const handleStartCall = useCallback(() => {
+  const handleStartCall = useCallback(async () => {
     if (!activeConversationId || showVideoCall || activeCall) return
+    // Acquire media in click handler context (critical for mobile browsers)
+    const stream = await acquireMediaStream()
     const roomId = crypto.randomUUID()
+    setCallStream(stream)
     setCallRoomId(roomId)
     sendCallStarted(activeConversationId, roomId)
     setShowVideoCall(true)
@@ -1214,7 +1219,8 @@ function MessagesPage() {
           roomId={callRoomId}
           calleeName={activeConv.other_user_name}
           calleeRole={activeConv.other_user_role}
-          onClose={() => { setShowVideoCall(false); setCallRoomId(null) }}
+          stream={callStream}
+          onClose={() => { setShowVideoCall(false); setCallRoomId(null); setCallStream(null) }}
           onCallEnd={handleCallEnd}
         />
       )}

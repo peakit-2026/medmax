@@ -6,6 +6,7 @@ interface VideoCallProps {
   roomId: string
   calleeName: string
   calleeRole?: string // 'doctor' | 'surgeon'
+  stream?: MediaStream | null // Pre-acquired media stream from click handler
   onClose: () => void
   onCallEnd?: () => void
 }
@@ -132,7 +133,7 @@ function StatusBadge({ isReconnecting, connectionLost, isConnecting }: {
 
 /* ── Component ── */
 
-function VideoCall({ roomId, calleeName, calleeRole, onClose, onCallEnd }: VideoCallProps) {
+function VideoCall({ roomId, calleeName, calleeRole, stream: preAcquiredStream, onClose, onCallEnd }: VideoCallProps) {
   const {
     localVideoRef,
     remoteCanvasRef,
@@ -155,10 +156,10 @@ function VideoCall({ roomId, calleeName, calleeRole, onClose, onCallEnd }: Video
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Auto-connect on mount
+  // Auto-connect on mount, passing pre-acquired stream if available
   useEffect(() => {
-    connect()
-  }, [connect])
+    connect(preAcquiredStream ?? null)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Track "was ever connected"
   useEffect(() => {

@@ -12,13 +12,36 @@ interface WebTransportState {
   error: string | null
 }
 
-const AUDIO_CONSTRAINTS: MediaTrackConstraints = {
-  channelCount: 1,
-  echoCancellation: true,
-  noiseSuppression: true,
-  autoGainControl: true,
-  // Don't force sampleRate — many mobile devices only support 44100 Hz
-  // and will reject the constraint. The AudioEncoder handles resampling.
+/**
+ * Acquire camera+mic media stream with progressive fallback.
+ * Call this from a click handler (user gesture context) for best mobile compatibility.
+ * Returns the stream, or null if all attempts fail.
+ */
+export async function acquireMediaStream(): Promise<MediaStream | null> {
+  const attempts: MediaStreamConstraints[] = [
+    {
+      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    },
+    { video: true, audio: true },
+    { video: false, audio: true },
+    { video: false, audio: { channelCount: 1 } },
+  ]
+
+  for (const constraints of attempts) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints)
+      console.log('[acquireMedia] OK with constraints:', JSON.stringify(constraints),
+        'video tracks:', stream.getVideoTracks().length,
+        'audio tracks:', stream.getAudioTracks().length)
+      return stream
+    } catch (err: any) {
+      console.warn('[acquireMedia] Failed with constraints:', JSON.stringify(constraints), err.name, err.message)
+    }
+  }
+
+  console.error('[acquireMedia] All attempts failed')
+  return null
 }
 
 export function useWebTransport(roomId: string) {
@@ -52,12 +75,8 @@ export function useWebTransport(roomId: string) {
     error: null,
   })
 
-  const cleanup = useCallback(() => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current)
-      reconnectTimerRef.current = null
-    }
-
+  // Light cleanup: tears down transport/encoders/decoders but keeps the media stream alive for reconnect
+  const cleanupTransport = useCallback(() => {
     abortRef.current?.abort()
     abortRef.current = null
 
@@ -73,71 +92,51 @@ export function useWebTransport(roomId: string) {
     audioContextRef.current?.close()
     audioContextRef.current = null
 
-    streamRef.current?.getTracks().forEach((t) => t.stop())
-    streamRef.current = null
-
     transportRef.current?.close()
     transportRef.current = null
 
     audioTimeRef.current = 0
     waitingKeyframeRef.current = true
     canvasCtxRef.current = null
+  }, [])
+
+  // Full cleanup: also stops media stream and resets all state
+  const cleanup = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current)
+      reconnectTimerRef.current = null
+    }
+
+    cleanupTransport()
+
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+
     reconnectAttemptRef.current = 0
 
     setState((s) => ({ ...s, isConnected: false, isReconnecting: false, error: null }))
-  }, [])
+  }, [cleanupTransport])
 
-  const connect = useCallback(async () => {
+  // connect accepts an optional pre-acquired MediaStream.
+  // On first call, the caller (click handler) should pass the stream acquired in the gesture context.
+  // On reconnect, the existing streamRef is reused automatically.
+  const connect = useCallback(async (preAcquiredStream?: MediaStream | null) => {
     try {
-      cleanup()
+      cleanupTransport()
 
       if (typeof WebTransport === 'undefined') {
         setState((s) => ({ ...s, error: 'Ваш браузер не поддерживает видеозвонки. Используйте Chrome или Edge на ПК.' }))
         return
       }
 
-      // ── Acquire media FIRST, while user-gesture context is still alive ──
-      // On mobile browsers, getUserMedia must happen close to the user tap,
-      // before any async network calls consume the gesture allowance.
-      let hasVideo = false
-      let stream: MediaStream | null = null
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
-          audio: AUDIO_CONSTRAINTS,
-        })
-        hasVideo = stream.getVideoTracks().length > 0
-      } catch {
-        // Camera failed — try audio-only with constraints
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: false,
-            audio: AUDIO_CONSTRAINTS,
-          })
-        } catch {
-          // Constraints rejected — try bare minimum
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: false,
-              audio: true,
-            })
-          } catch (mediaErr: any) {
-            if (mediaErr.name === 'NotAllowedError') {
-              setState((s) => ({
-                ...s,
-                error: 'Нет доступа к камере/микрофону. Разрешите доступ в настройках браузера (значок 🔒 слева от адресной строки).',
-              }))
-            } else {
-              setState((s) => ({
-                ...s,
-                error: 'Не удалось получить доступ к камере или микрофону.',
-              }))
-            }
-            // Continue without local media — user can still receive
-          }
-        }
+      // Use pre-acquired stream, or reuse existing one (reconnect), or acquire fresh
+      let stream = preAcquiredStream !== undefined ? preAcquiredStream : streamRef.current
+      if (!stream) {
+        // Fallback: try to acquire media ourselves (may fail on some mobile browsers without user gesture)
+        stream = await acquireMediaStream()
       }
       streamRef.current = stream
+      const hasVideo = (stream?.getVideoTracks().length ?? 0) > 0
       const hasAudio = (stream?.getAudioTracks().length ?? 0) > 0
       setState((s) => ({ ...s, hasCamera: hasVideo, hasAudio }))
 
@@ -494,7 +493,7 @@ export function useWebTransport(roomId: string) {
       }
       setState((s) => ({ ...s, error: errorMsg, isConnected: false }))
     }
-  }, [roomId, cleanup])
+  }, [roomId, cleanupTransport])
 
   const disconnect = useCallback(() => {
     cleanup()
