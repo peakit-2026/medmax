@@ -99,7 +99,7 @@ export function useWebTransport(roomId: string) {
       abortRef.current = abort
 
       let hasVideo = false
-      let stream: MediaStream
+      let stream: MediaStream | null = null
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { width: 640, height: 480, frameRate: 30 },
@@ -107,10 +107,25 @@ export function useWebTransport(roomId: string) {
         })
         hasVideo = stream.getVideoTracks().length > 0
       } catch {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: false,
-          audio: AUDIO_CONSTRAINTS,
-        })
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: AUDIO_CONSTRAINTS,
+          })
+        } catch (mediaErr: any) {
+          if (mediaErr.name === 'NotAllowedError') {
+            setState((s) => ({
+              ...s,
+              error: 'Нет доступа к камере/микрофону. Разрешите доступ в настройках браузера (значок 🔒 слева от адресной строки).',
+            }))
+          } else {
+            setState((s) => ({
+              ...s,
+              error: 'Не удалось получить доступ к камере или микрофону.',
+            }))
+          }
+          // Continue without local media — user can still receive
+        }
       }
       streamRef.current = stream
 
@@ -148,7 +163,7 @@ export function useWebTransport(roomId: string) {
         videoEncoderRef.current = videoEncoder
       }
 
-      const videoTrack = stream.getVideoTracks()[0]
+      const videoTrack = stream?.getVideoTracks()[0]
       const videoEncoder = videoEncoderRef.current
       if (videoTrack && videoEncoder) {
         if (typeof MediaStreamTrackProcessor !== 'undefined') {
@@ -218,7 +233,7 @@ export function useWebTransport(roomId: string) {
       })
       audioEncoderRef.current = audioEncoder
 
-      const audioTrack = stream.getAudioTracks()[0]
+      const audioTrack = stream?.getAudioTracks()[0]
       if (audioTrack) {
         if (typeof MediaStreamTrackProcessor !== 'undefined') {
           const processor = new MediaStreamTrackProcessor({ track: audioTrack })
@@ -417,7 +432,16 @@ export function useWebTransport(roomId: string) {
       })()
 
     } catch (e: any) {
-      setState((s) => ({ ...s, error: e.message || 'Connection failed', isConnected: false }))
+      console.error('VideoCall connect error:', e)
+      let errorMsg = 'Не удалось подключиться к видеозвонку.'
+      if (e.name === 'NotAllowedError' || e.message?.includes('Permission denied')) {
+        errorMsg = 'Нет доступа к камере/микрофону. Разрешите доступ в настройках браузера.'
+      } else if (e.response?.status === 401 || e.response?.status === 403) {
+        errorMsg = 'Ошибка авторизации. Попробуйте перезайти в систему.'
+      } else if (e.message) {
+        errorMsg = e.message
+      }
+      setState((s) => ({ ...s, error: errorMsg, isConnected: false }))
     }
   }, [roomId, cleanup])
 
