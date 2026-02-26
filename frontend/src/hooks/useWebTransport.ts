@@ -5,18 +5,20 @@ interface WebTransportState {
   isConnected: boolean
   isReconnecting: boolean
   hasCamera: boolean
+  hasAudio: boolean
   isMuted: boolean
   isCameraOff: boolean
   hasRemoteVideo: boolean
   error: string | null
 }
 
-const AUDIO_CONSTRAINTS = {
-  sampleRate: 48000,
+const AUDIO_CONSTRAINTS: MediaTrackConstraints = {
   channelCount: 1,
   echoCancellation: true,
   noiseSuppression: true,
   autoGainControl: true,
+  // Don't force sampleRate — many mobile devices only support 44100 Hz
+  // and will reject the constraint. The AudioEncoder handles resampling.
 }
 
 export function useWebTransport(roomId: string) {
@@ -43,6 +45,7 @@ export function useWebTransport(roomId: string) {
     isConnected: false,
     isReconnecting: false,
     hasCamera: false,
+    hasAudio: false,
     isMuted: false,
     isCameraOff: false,
     hasRemoteVideo: false,
@@ -154,7 +157,8 @@ export function useWebTransport(roomId: string) {
         }
       }
       streamRef.current = stream
-      setState((s) => ({ ...s, hasCamera: hasVideo }))
+      const hasAudio = (stream?.getAudioTracks().length ?? 0) > 0
+      setState((s) => ({ ...s, hasCamera: hasVideo, hasAudio }))
 
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream
@@ -279,7 +283,12 @@ export function useWebTransport(roomId: string) {
             reader.releaseLock()
           })()
         } else {
-          const audioCtx2 = new AudioContext({ sampleRate: 48000 })
+          // Fallback for browsers without MediaStreamTrackProcessor (some mobile browsers)
+          const trackSettings = audioTrack.getSettings()
+          const captureSampleRate = trackSettings.sampleRate || 48000
+          const audioCtx2 = new AudioContext({ sampleRate: captureSampleRate })
+          // Critical on mobile: AudioContext starts suspended, must resume via user gesture context
+          audioCtx2.resume().catch(() => {})
           const source = audioCtx2.createMediaStreamSource(new MediaStream([audioTrack]))
           const scriptNode = audioCtx2.createScriptProcessor(4096, 1, 1)
           source.connect(scriptNode)
@@ -289,7 +298,7 @@ export function useWebTransport(roomId: string) {
             const input = e.inputBuffer.getChannelData(0)
             const audioData = new AudioData({
               format: 'f32',
-              sampleRate: 48000,
+              sampleRate: captureSampleRate,
               numberOfFrames: input.length,
               numberOfChannels: 1,
               timestamp: performance.now() * 1000,
@@ -480,10 +489,9 @@ export function useWebTransport(roomId: string) {
 
   const toggleMute = useCallback(() => {
     const audioTrack = streamRef.current?.getAudioTracks()[0]
-    if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled
-      setState((s) => ({ ...s, isMuted: !audioTrack.enabled }))
-    }
+    if (!audioTrack) return
+    audioTrack.enabled = !audioTrack.enabled
+    setState((s) => ({ ...s, isMuted: !audioTrack.enabled }))
   }, [])
 
   const toggleCamera = useCallback(() => {

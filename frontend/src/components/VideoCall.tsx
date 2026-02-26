@@ -76,6 +76,13 @@ const btnMic: React.CSSProperties = {
     'linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%), rgb(16,16,18)',
 }
 
+const btnMicDisabled: React.CSSProperties = {
+  ...btnBase,
+  background: 'rgba(120,120,128,0.24)',
+  cursor: 'default',
+  opacity: 0.5,
+}
+
 /* ── Status badge ── */
 
 function StatusBadge({ isReconnecting, connectionLost, isConnecting }: {
@@ -132,6 +139,7 @@ function VideoCall({ roomId, calleeName, calleeRole, onClose, onCallEnd }: Video
     isConnected,
     isReconnecting,
     hasCamera,
+    hasAudio,
     isMuted,
     isCameraOff,
     hasRemoteVideo,
@@ -209,6 +217,7 @@ function VideoCall({ roomId, calleeName, calleeRole, onClose, onCallEnd }: Video
 
   /* ── Buttons (shared between all modes) ── */
   const canToggleCamera = hasCamera
+  const canToggleMic = hasAudio
   const buttons = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <button
@@ -224,8 +233,12 @@ function VideoCall({ roomId, calleeName, calleeRole, onClose, onCallEnd }: Video
         <Phone size={24} color="#fff" style={{ transform: 'rotate(135deg)' }} />
         <span>Завершить</span>
       </button>
-      <button onClick={toggleMute} style={btnMic} title={isMuted ? 'Включить микрофон' : 'Выключить микрофон'}>
-        {isMuted ? <MicOff size={24} color="#fff" /> : <Mic size={24} color="#fff" />}
+      <button
+        onClick={canToggleMic ? toggleMute : undefined}
+        style={canToggleMic ? btnMic : btnMicDisabled}
+        title={!canToggleMic ? 'Микрофон недоступен' : isMuted ? 'Включить микрофон' : 'Выключить микрофон'}
+      >
+        {!canToggleMic || isMuted ? <MicOff size={24} color="#fff" /> : <Mic size={24} color="#fff" />}
       </button>
     </div>
   )
@@ -499,23 +512,43 @@ function VideoCall({ roomId, calleeName, calleeRole, onClose, onCallEnd }: Video
           {calleeName}
         </div>
 
-        {/* No camera hint */}
-        {isConnected && !hasCamera && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              marginBottom: 4,
-              padding: '4px 12px',
-              borderRadius: 8,
-              background: 'rgba(120,120,128,0.08)',
-            }}
-          >
-            <VideoOff size={14} color="rgba(60,60,67,0.6)" />
-            <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(60,60,67,0.6)' }}>
-              Камера недоступна
-            </span>
+        {/* Media availability hints */}
+        {isConnected && (!hasCamera || !hasAudio) && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', marginBottom: 4 }}>
+            {!hasCamera && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '4px 12px',
+                  borderRadius: 8,
+                  background: 'rgba(120,120,128,0.08)',
+                }}
+              >
+                <VideoOff size={14} color="rgba(60,60,67,0.6)" />
+                <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(60,60,67,0.6)' }}>
+                  Камера недоступна
+                </span>
+              </div>
+            )}
+            {!hasAudio && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '4px 12px',
+                  borderRadius: 8,
+                  background: 'rgba(255,59,48,0.08)',
+                }}
+              >
+                <MicOff size={14} color="rgba(255,59,48,0.8)" />
+                <span style={{ fontSize: 14, fontWeight: 400, color: 'rgba(255,59,48,0.8)' }}>
+                  Микрофон недоступен
+                </span>
+              </div>
+            )}
           </div>
         )}
 
