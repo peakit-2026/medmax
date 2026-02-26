@@ -147,7 +147,7 @@ function VideoCall({ roomId, calleeName, calleeRole, onClose, onCallEnd }: Video
       </button>
       <button onClick={handleEndCall} style={btnEndCall}>
         <Phone size={24} color="#fff" style={{ transform: 'rotate(135deg)' }} />
-        <span>{'Завершить звонок'}</span>
+        <span>{'Завершить'}</span>
       </button>
       <button onClick={toggleMute} style={btnMic} title={isMuted ? 'Включить микрофон' : 'Выключить микрофон'}>
         {isMuted ? <MicOff size={24} color="#fff" /> : <Mic size={24} color="#fff" />}

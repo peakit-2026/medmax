@@ -26,6 +26,7 @@ export interface ChatMessage {
   conversation_id: string
   sender_id: string
   sender_name: string
+  sender_role: string
   content: string | null
   reply_to_id: string | null
   reply_to_content: string | null
@@ -97,6 +98,7 @@ interface ApiMessageResponse {
   conversation_id: string
   sender_id: string
   sender_name: string
+  sender_role: string
   content: string | null
   reply_to_id: string | null
   reply_to_content: string | null
@@ -112,6 +114,7 @@ function mapMessage(msg: ApiMessageResponse): ChatMessage {
     conversation_id: msg.conversation_id,
     sender_id: msg.sender_id,
     sender_name: msg.sender_name,
+    sender_role: msg.sender_role,
     content: msg.content,
     reply_to_id: msg.reply_to_id,
     reply_to_content: msg.reply_to_content,

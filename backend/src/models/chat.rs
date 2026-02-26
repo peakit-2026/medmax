@@ -54,6 +54,7 @@ pub struct MessageResponse {
     pub conversation_id: Uuid,
     pub sender_id: Uuid,
     pub sender_name: String,
+    pub sender_role: String,
     pub content: Option<String>,
     pub reply_to_id: Option<Uuid>,
     pub reply_to_content: Option<String>,
@@ -79,6 +80,7 @@ struct MessageRow {
     pub conversation_id: Uuid,
     pub sender_id: Uuid,
     pub sender_name: String,
+    pub sender_role: String,
     pub content: Option<String>,
     pub reply_to_id: Option<Uuid>,
     pub reply_to_content: Option<String>,
@@ -241,6 +243,7 @@ impl Message {
                 m.conversation_id,
                 m.sender_id,
                 u.full_name AS sender_name,
+                u.role AS sender_role,
                 m.content,
                 m.reply_to_id,
                 r.content AS reply_to_content,
@@ -300,6 +303,7 @@ impl Message {
                     conversation_id: row.conversation_id,
                     sender_id: row.sender_id,
                     sender_name: row.sender_name,
+                    sender_role: row.sender_role,
                     content: row.content,
                     reply_to_id: row.reply_to_id,
                     reply_to_content: row.reply_to_content,
@@ -343,12 +347,13 @@ impl Message {
         msg: &Message,
     ) -> sqlx::Result<MessageResponse> {
         #[derive(sqlx::FromRow)]
-        struct NameRow {
+        struct SenderRow {
             full_name: String,
+            role: String,
         }
 
-        let sender = sqlx::query_as::<_, NameRow>(
-            "SELECT full_name FROM users WHERE id = $1",
+        let sender = sqlx::query_as::<_, SenderRow>(
+            "SELECT full_name, role FROM users WHERE id = $1",
         )
         .bind(msg.sender_id)
         .fetch_one(pool)
@@ -398,6 +403,7 @@ impl Message {
             conversation_id: msg.conversation_id,
             sender_id: msg.sender_id,
             sender_name: sender.full_name,
+            sender_role: sender.role,
             content: msg.content.clone(),
             reply_to_id: msg.reply_to_id,
             reply_to_content,

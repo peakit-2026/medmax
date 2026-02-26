@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useChatStore, type Conversation, type ChatMessage, type MessageAttachment } from '../../store/chat'
 import { useAuthStore } from '../../store/auth'
+import VideoCall from '../../components/VideoCall'
 
 /* ── Helpers ─────────────────────────────────────────────────────────── */
 
@@ -270,7 +271,7 @@ function MessageBubble({
       }}
     >
       {!isOwn && (
-        <ChatAvatar name={message.sender_name} role="doctor" size={32} />
+        <ChatAvatar name={message.sender_name} role={message.sender_role} size={32} />
       )}
       <div
         style={{
@@ -411,18 +412,25 @@ function MessagesPage() {
   const conversations = useChatStore((s) => s.conversations)
   const activeConversationId = useChatStore((s) => s.activeConversationId)
   const messages = useChatStore((s) => s.messages)
+  const hasMore = useChatStore((s) => s.hasMore)
   const loadConversations = useChatStore((s) => s.loadConversations)
   const selectConversation = useChatStore((s) => s.selectConversation)
   const loadMessages = useChatStore((s) => s.loadMessages)
+  const loadOlderMessages = useChatStore((s) => s.loadOlderMessages)
   const sendMessage = useChatStore((s) => s.sendMessage)
   const sendMessageWithFiles = useChatStore((s) => s.sendMessageWithFiles)
+  const sendCallStarted = useChatStore((s) => s.sendCallStarted)
+  const sendCallEnded = useChatStore((s) => s.sendCallEnded)
 
+  const [showVideoCall, setShowVideoCall] = useState(false)
   const [inputText, setInputText] = useState('')
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null)
   const [sending, setSending] = useState(false)
+  const [loadingOlder, setLoadingOlder] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -510,7 +518,38 @@ function MessagesPage() {
     textareaRef.current?.focus()
   }, [])
 
+  const handleStartCall = useCallback(() => {
+    if (!activeConversationId) return
+    const roomId = crypto.randomUUID()
+    sendCallStarted(activeConversationId, roomId)
+    setShowVideoCall(true)
+  }, [activeConversationId, sendCallStarted])
+
+  const handleCallEnd = useCallback(() => {
+    if (activeConversationId) {
+      sendCallEnded(activeConversationId)
+    }
+  }, [activeConversationId, sendCallEnded])
+
+  const handleScroll = useCallback(
+    async (e: React.UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget
+      if (el.scrollTop < 100 && activeConversationId && hasMore[activeConversationId] && !loadingOlder) {
+        const prevHeight = el.scrollHeight
+        setLoadingOlder(true)
+        await loadOlderMessages(activeConversationId)
+        setLoadingOlder(false)
+        // Preserve scroll position after prepending older messages
+        requestAnimationFrame(() => {
+          el.scrollTop = el.scrollHeight - prevHeight
+        })
+      }
+    },
+    [activeConversationId, hasMore, loadingOlder, loadOlderMessages]
+  )
+
   return (
+    <>
     <div style={{ display: 'flex', height: '100%', fontFamily: 'var(--font-sans)' }}>
       {/* ── Left Panel: Conversation List ── */}
       <div
@@ -624,6 +663,7 @@ function MessagesPage() {
 
                 {/* Call button */}
                 <button
+                  onClick={handleStartCall}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -647,6 +687,8 @@ function MessagesPage() {
 
             {/* Messages area */}
             <div
+              ref={messagesContainerRef}
+              onScroll={handleScroll}
               style={{
                 flex: 1,
                 overflowY: 'auto',
@@ -859,6 +901,18 @@ function MessagesPage() {
         )}
       </div>
     </div>
+
+      {/* Video call modal */}
+      {showVideoCall && activeConv && (
+        <VideoCall
+          roomId={activeConv.id}
+          calleeName={activeConv.other_user_name}
+          calleeRole={activeConv.other_user_role}
+          onClose={() => setShowVideoCall(false)}
+          onCallEnd={handleCallEnd}
+        />
+      )}
+    </>
   )
 }
 
