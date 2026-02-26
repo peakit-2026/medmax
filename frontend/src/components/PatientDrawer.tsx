@@ -13,6 +13,7 @@ import calendarIcon from '../assets/icons/calendar.svg'
 import documentIcon from '../assets/icons/document.svg'
 import checkmarkIcon from '../assets/icons/checkmark.svg'
 import eyeIcon from '../assets/icons/eye.svg'
+import searchIcon from '../assets/icons/search.svg'
 import { usePatientStore, selectComments, selectMedia } from '../store/patients'
 import { getDisplayStatus, shortenName } from '../types'
 import type { ChecklistItem, Comment, MediaFile, IolCalculation } from '../types'
@@ -713,7 +714,7 @@ function PatientDrawer({ patientId, onClose }: Props) {
                   </div>
                   {/* Row 3: Диагноз + Статус */}
                   <div className="flex" style={{ gap: '8px' }}>
-                    <InfoCard icon={<img src={eyeIcon} width={24} height={24} alt="" />} label="Диагноз" value={patient.diagnosis_text} />
+                    <InfoCard icon={<img src={searchIcon} width={24} height={24} alt="" />} label="Диагноз" value={patient.diagnosis_text} />
                     {/* Status card — custom with badge dot */}
                     <div
                       className="flex-1 border border-border rounded-[24px] overflow-clip flex items-start"
