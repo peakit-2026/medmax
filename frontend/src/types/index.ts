@@ -12,6 +12,7 @@ export interface Patient {
   status: 'red' | 'yellow' | 'green'
   access_code: string
   operation_date: string | null
+  operation_time: string | null
   notes: string | null
   created_at: string
   updated_at: string

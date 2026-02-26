@@ -113,7 +113,7 @@ function SurgeonDashboard() {
 
   const handleApprove = async (e: React.MouseEvent, patientId: string) => {
     e.stopPropagation()
-    await approvePatient(patientId, null)
+    await approvePatient(patientId, null, null)
     fetchPatients()
   }
 

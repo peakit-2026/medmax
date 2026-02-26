@@ -47,6 +47,7 @@ function PatientReview({ patientId, onClose }: Props) {
   const [showApproveModal, setShowApproveModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [operationDate, setOperationDate] = useState('')
+  const [operationTime, setOperationTime] = useState('')
   const [rejectComment, setRejectComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -90,9 +91,10 @@ function PatientReview({ patientId, onClose }: Props) {
   const handleApprove = async () => {
     setSubmitting(true)
     try {
-      await approvePatient(patientId, operationDate || null)
+      await approvePatient(patientId, operationDate || null, operationTime || null)
       setShowApproveModal(false)
       setOperationDate('')
+      setOperationTime('')
       fetchPatients()
     } finally {
       setSubmitting(false)
@@ -407,6 +409,18 @@ function PatientReview({ patientId, onClose }: Props) {
                 type="date"
                 value={operationDate}
                 onChange={(e) => setOperationDate(e.target.value)}
+                className="border border-border rounded-[12px] text-[16px] leading-[24px] text-text focus:outline-none focus:border-primary bg-white"
+                style={{ padding: '16px 12px' }}
+              />
+            </div>
+            <div className="flex flex-col" style={{ gap: '8px' }}>
+              <label className="text-[14px] font-medium leading-[12px] text-text-secondary">
+                Время операции
+              </label>
+              <input
+                type="time"
+                value={operationTime}
+                onChange={(e) => setOperationTime(e.target.value)}
                 className="border border-border rounded-[12px] text-[16px] leading-[24px] text-text focus:outline-none focus:border-primary bg-white"
                 style={{ padding: '16px 12px' }}
               />

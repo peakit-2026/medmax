@@ -23,7 +23,8 @@ interface PatientState {
   createPatient: (data: Record<string, unknown>) => Promise<Patient>
   toggleChecklist: (itemId: string, patientId: string, currentCompleted: boolean) => Promise<void>
   addComment: (patientId: string, content: string) => Promise<void>
-  approvePatient: (id: string, operationDate: string | null) => Promise<void>
+  approvePatient: (id: string, operationDate: string | null, operationTime: string | null) => Promise<void>
+  fetchSchedule: (weekStart: string) => Promise<Patient[]>
   rejectPatient: (id: string, comment: string) => Promise<void>
   updatePatient: (id: string, data: Record<string, unknown>) => Promise<void>
   deleteMedia: (mediaId: string, patientId: string) => Promise<void>
@@ -146,32 +147,38 @@ export const usePatientStore = create<PatientState>((set, get) => ({
     }
   },
 
-  approvePatient: async (id, operationDate) => {
+  approvePatient: async (id, operationDate, operationTime) => {
     const patient = get().patients[id]
     const prevStatus = patient?.status
     const prevDate = patient?.operation_date
+    const prevTime = patient?.operation_time
 
     if (patient) {
       set({
-        patients: { ...get().patients, [id]: { ...patient, status: 'green', operation_date: operationDate } },
+        patients: { ...get().patients, [id]: { ...patient, status: 'green', operation_date: operationDate, operation_time: operationTime } },
         patientList: get().patientList.map((p) =>
-          p.id === id ? { ...p, status: 'green' as const, operation_date: operationDate } : p
+          p.id === id ? { ...p, status: 'green' as const, operation_date: operationDate, operation_time: operationTime } : p
         ),
       })
     }
 
     try {
-      await api.post(`/surgeon/patients/${id}/approve`, { operation_date: operationDate })
+      await api.post(`/surgeon/patients/${id}/approve`, { operation_date: operationDate, operation_time: operationTime })
     } catch {
       if (patient && prevStatus) {
         set({
-          patients: { ...get().patients, [id]: { ...patient, status: prevStatus, operation_date: prevDate ?? null } },
+          patients: { ...get().patients, [id]: { ...patient, status: prevStatus, operation_date: prevDate ?? null, operation_time: prevTime ?? null } },
           patientList: get().patientList.map((p) =>
-            p.id === id ? { ...p, status: prevStatus, operation_date: prevDate ?? null } : p
+            p.id === id ? { ...p, status: prevStatus, operation_date: prevDate ?? null, operation_time: prevTime ?? null } : p
           ),
         })
       }
     }
+  },
+
+  fetchSchedule: async (weekStart) => {
+    const { data } = await api.get<Patient[]>(`/surgeon/schedule?week_start=${weekStart}`)
+    return data
   },
 
   rejectPatient: async (id, comment) => {
