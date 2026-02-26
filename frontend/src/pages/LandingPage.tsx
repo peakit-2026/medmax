@@ -49,7 +49,7 @@ function useScrollReveal<T extends HTMLElement>(
 
 /* ─── Reusable content wrapper ─── */
 const Content = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-  <div className={`w-full max-w-[1040px] mx-auto px-[24px] ${className}`}>{children}</div>
+  <div className={`w-full max-w-[1040px] mx-auto px-[16px] md:px-[24px] ${className}`}>{children}</div>
 )
 
 /* ─────────────────── Header ─────────────────── */
@@ -101,7 +101,7 @@ function Header() {
 
   return (
     <header className="w-full py-[24px]">
-      <div className="w-full max-w-[960px] mx-auto px-[24px] flex items-center justify-between">
+      <div className="w-full max-w-[960px] mx-auto px-[16px] md:px-[24px] flex items-center justify-between">
         <div className="flex items-center gap-[12px]">
           <img ref={logoRef} src={logoSvg} alt="MedMAX" className="w-[48px] h-[48px]" />
           <span
@@ -122,7 +122,8 @@ function Header() {
           }}
           onMouseEnter={handleBtnEnter}
         >
-          <span>Оставить заявку</span>
+          <span className="hidden sm:inline">Оставить заявку</span>
+          <span className="sm:hidden">Заявка</span>
           <Sparkles size={24} />
           <div className="absolute inset-0 pointer-events-none rounded-[inherit]" style={{ boxShadow: 'inset 0 -1px 1px 0 rgba(16,16,18,0.12)' }} />
         </a>
@@ -304,11 +305,11 @@ function Hero() {
 
   return (
     <div className="relative w-full">
-      <div className="relative pt-[64px]">
+      <div className="relative pt-[32px] md:pt-[64px]">
         <div className="relative w-full max-w-[960px] mx-auto">
           <div
             ref={heartRef}
-            className="absolute w-[350px] h-[350px] z-10 select-none"
+            className="absolute hidden md:block w-[200px] h-[200px] lg:w-[350px] lg:h-[350px] z-10 select-none"
             style={{ right: '-100px', top: '-56px', cursor: 'grab', touchAction: 'none' }}
           >
             <img
@@ -320,16 +321,16 @@ function Hero() {
           </div>
         </div>
 
-        <div className="flex flex-col items-center gap-[48px] w-full max-w-[960px] mx-auto px-[24px]">
+        <div className="flex flex-col items-center gap-[24px] md:gap-[48px] w-full max-w-[960px] mx-auto px-[16px] md:px-[24px]">
           <h1
             ref={titleRef}
-            className="text-[64px] font-medium leading-[64px] tracking-[-3px] text-center text-dark w-full"
+            className="text-[32px] sm:text-[44px] md:text-[56px] lg:text-[64px] font-medium leading-[1] tracking-[-2px] md:tracking-[-3px] text-center text-dark w-full"
             style={{ fontFeatureSettings: "'ss01' 1" }}
           >
             Цифровая платформа для удаленной подготовки пациентов к операциям
           </h1>
 
-          <div ref={buttonsRef} className="flex items-start gap-[12px]">
+          <div ref={buttonsRef} className="flex flex-wrap justify-center items-start gap-[12px]">
             <a
               href="#features"
               className="flex items-center justify-center px-[16px] py-[8px] rounded-full font-medium text-[16px] leading-[24px] text-dark cursor-pointer"
@@ -354,7 +355,7 @@ function Hero() {
           </div>
         </div>
 
-        <div ref={screenshotRef} className="relative w-full max-w-[960px] mx-auto mt-[64px] px-[24px]">
+        <div ref={screenshotRef} className="relative w-full max-w-[960px] mx-auto mt-[32px] md:mt-[64px] px-[16px] md:px-[24px]">
           <div
             className="rounded-[20px] overflow-hidden"
             style={{
@@ -433,16 +434,16 @@ function Audience() {
   })
 
   return (
-    <section className="w-full bg-white py-[64px]">
-      <Content className="flex flex-col items-center gap-[64px]">
+    <section className="w-full bg-white py-[40px] md:py-[64px]">
+      <Content className="flex flex-col items-center gap-[32px] md:gap-[64px]">
         <h2
           ref={titleRef}
-          className="text-[48px] font-medium leading-[48px] tracking-[-2px] text-center text-dark"
+          className="text-[32px] md:text-[48px] font-medium leading-[1] tracking-[-1.5px] md:tracking-[-2px] text-center text-dark"
           style={{ fontFeatureSettings: "'ss01' 1" }}
         >
           Совершенство для каждого
         </h2>
-        <div ref={cardsRef} className="flex gap-[64px] w-full">
+        <div ref={cardsRef} className="flex flex-col md:flex-row gap-[32px] md:gap-[64px] w-full">
           {items.map((item) => (
             <div key={item.title} className="flex-1 flex flex-col gap-[24px]">
               {item.icon}
@@ -514,11 +515,11 @@ function Features() {
   })
 
   return (
-    <section id="features" className="w-full bg-white py-[64px]">
-      <Content className="flex flex-col gap-[64px]">
+    <section id="features" className="w-full bg-white py-[40px] md:py-[64px]">
+      <Content className="flex flex-col gap-[32px] md:gap-[64px]">
         <h2
           ref={titleRef}
-          className="text-[48px] font-medium leading-[48px] tracking-[-2px] text-dark"
+          className="text-[28px] sm:text-[36px] md:text-[48px] font-medium leading-[1.1] md:leading-[48px] tracking-[-1.5px] md:tracking-[-2px] text-dark"
           style={{ fontFeatureSettings: "'ss01' 1" }}
         >
           <span style={{ color: 'rgba(60,60,67,0.52)' }}>От протокола к операции — быстрее.</span>
@@ -526,10 +527,10 @@ function Features() {
           MedMAX — система подготовки, которая адаптируется под клинику
         </h2>
 
-        <div className="flex gap-[48px] w-full">
+        <div className="flex flex-col md:flex-row gap-[24px] md:gap-[48px] w-full">
           {/* Left column */}
-          <div ref={colLeftRef} className="flex-1 flex flex-col gap-[48px] min-w-0">
-            <FeatureCard height="h-[350px]" gap="gap-[36px]">
+          <div ref={colLeftRef} className="flex-1 flex flex-col gap-[24px] md:gap-[48px] min-w-0">
+            <FeatureCard height="md:h-[350px]" gap="gap-[36px]">
               <div className="flex flex-col gap-[12px]">
                 <h3 className="text-[20px] font-medium leading-[20px] tracking-[-0.33px] text-dark">Чаты и видеозвонки</h3>
                 <p className="text-[16px] font-normal leading-[24px] tracking-[-0.25px] text-text-secondary">Консультации с хирургом в реальном времени</p>
@@ -544,13 +545,13 @@ function Features() {
           </div>
 
           {/* Center column */}
-          <div ref={colCenterRef} className="flex-1 flex flex-col gap-[48px] min-w-0">
+          <div ref={colCenterRef} className="flex-1 flex flex-col gap-[24px] md:gap-[48px] min-w-0">
             <FeatureCard>
               <h3 className="text-[20px] font-medium leading-[20px] tracking-[-0.33px] text-dark">Офлайн-режим</h3>
               <p className="text-[16px] font-normal leading-[24px] tracking-[-0.25px] text-text-secondary">Заполняйте карточки и файлы без интернета</p>
             </FeatureCard>
 
-            <FeatureCard height="h-[350px]" gap="gap-[36px]">
+            <FeatureCard height="md:h-[350px]" gap="gap-[36px]">
               <div className="flex flex-col gap-[12px]">
                 <h3 className="text-[20px] font-medium leading-[20px] tracking-[-0.33px] text-dark">Календарь хирурга</h3>
                 <p className="text-[16px] font-normal leading-[24px] tracking-[-0.25px] text-text-secondary">Удобный календарь для планирования операций</p>
@@ -560,8 +561,8 @@ function Features() {
           </div>
 
           {/* Right column */}
-          <div ref={colRightRef} className="flex-1 flex flex-col gap-[48px] min-w-0">
-            <FeatureCard height="h-[350px]" justify="justify-between">
+          <div ref={colRightRef} className="flex-1 flex flex-col gap-[24px] md:gap-[48px] min-w-0">
+            <FeatureCard height="md:h-[350px]" justify="justify-between">
               <img src={dragndropPreview} alt="Drag and drop" className="w-full h-[186px] object-contain" />
               <div className="flex flex-col gap-[12px]">
                 <h3 className="text-[20px] font-medium leading-[20px] tracking-[-0.33px] text-dark">Загрузка снимков</h3>
@@ -761,11 +762,11 @@ function Team() {
   })
 
   return (
-    <section className="w-full bg-white py-[64px]">
-      <Content className="flex flex-col items-center gap-[64px]">
-        <div ref={titleRef} className="flex flex-col items-center gap-[24px] max-w-[488px] text-center">
+    <section className="w-full bg-white py-[40px] md:py-[64px]">
+      <Content className="flex flex-col items-center gap-[32px] md:gap-[64px]">
+        <div ref={titleRef} className="flex flex-col items-center gap-[16px] md:gap-[24px] max-w-[488px] text-center">
           <h2
-            className="text-[48px] font-medium leading-[48px] tracking-[-2px] text-dark"
+            className="text-[32px] md:text-[48px] font-medium leading-[1] tracking-[-1.5px] md:tracking-[-2px] text-dark"
             style={{ fontFeatureSettings: "'ss01' 1" }}
           >
             Команда
@@ -775,7 +776,7 @@ function Team() {
           </p>
         </div>
 
-        <div ref={gridRef} className="flex gap-[48px] w-full">
+        <div ref={gridRef} className="grid grid-cols-2 md:grid-cols-4 gap-[16px] md:gap-[48px] w-full">
           {members.map((member) => (
             <TeamMember key={member.name} member={member} />
           ))}
@@ -805,24 +806,24 @@ function TeamMember({ member }: { member: { name: string; role: string; photo: s
   return (
     <div
       ref={ref}
-      className="flex-1 flex flex-col gap-[24px] min-w-0 cursor-pointer"
+      className="flex flex-col gap-[16px] md:gap-[24px] min-w-0 cursor-pointer"
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
     >
       <div
-        className="h-[300px] rounded-[28px] overflow-hidden relative"
+        className="h-[200px] md:h-[300px] rounded-[20px] md:rounded-[28px] overflow-hidden relative"
         style={{ border: '1px solid rgba(120,120,128,0)' }}
       >
-        <div className="absolute inset-0 bg-surface-secondary rounded-[28px]" />
+        <div className="absolute inset-0 bg-surface-secondary rounded-[20px] md:rounded-[28px]" />
         <img
           src={member.photo}
           alt={member.name}
-          className="absolute inset-0 w-full h-full object-cover rounded-[28px]"
+          className="absolute inset-0 w-full h-full object-cover rounded-[20px] md:rounded-[28px]"
         />
       </div>
-      <div className="flex flex-col gap-[8px]">
-        <p className="text-[20px] font-medium leading-[20px] tracking-[-0.33px] text-dark">{member.name}</p>
-        <p className="text-[16px] font-normal leading-[24px] tracking-[-0.25px] text-text-secondary">{member.role}</p>
+      <div className="flex flex-col gap-[4px] md:gap-[8px]">
+        <p className="text-[16px] md:text-[20px] font-medium leading-[20px] tracking-[-0.33px] text-dark">{member.name}</p>
+        <p className="text-[14px] md:text-[16px] font-normal leading-[20px] md:leading-[24px] tracking-[-0.25px] text-text-secondary">{member.role}</p>
       </div>
     </div>
   )
@@ -906,17 +907,17 @@ function Pricing() {
   })
 
   return (
-    <section id="pricing" className="w-full bg-white py-[64px]">
-      <Content className="flex flex-col items-center gap-[64px]">
+    <section id="pricing" className="w-full bg-white py-[40px] md:py-[64px]">
+      <Content className="flex flex-col items-center gap-[32px] md:gap-[64px]">
         <h2
           ref={titleRef}
-          className="text-[48px] font-medium leading-[48px] tracking-[-2px] text-center text-dark"
+          className="text-[32px] md:text-[48px] font-medium leading-[1] tracking-[-1.5px] md:tracking-[-2px] text-center text-dark"
           style={{ fontFeatureSettings: "'ss01' 1" }}
         >
           Тарифы
         </h2>
 
-        <div ref={cardsRef} className="flex gap-[48px] w-full">
+        <div ref={cardsRef} className="flex flex-col md:flex-row gap-[24px] md:gap-[48px] w-full">
           {plans.map((plan) => (
             <PricingCard key={plan.name} plan={plan} />
           ))}
@@ -949,7 +950,7 @@ function PricingCard({ plan }: { plan: {
   return (
     <div
       ref={ref}
-      className="flex-1 h-[500px] rounded-[28px] overflow-hidden p-[24px] flex flex-col justify-between min-w-0"
+      className="flex-1 md:h-[500px] rounded-[24px] md:rounded-[28px] overflow-hidden p-[20px] md:p-[24px] flex flex-col justify-between gap-[24px] md:gap-0 min-w-0"
       style={{ background: plan.bg, border: '1px solid rgba(120,120,128,0)' }}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
@@ -1000,7 +1001,7 @@ function Footer() {
   return (
     <footer className="w-full bg-white" style={{ borderTop: '1px solid rgba(120,120,128,0.16)' }}>
       <Content>
-        <div ref={ref} className="flex items-center justify-between py-[64px]">
+        <div ref={ref} className="flex flex-col sm:flex-row items-center justify-between gap-[24px] py-[40px] md:py-[64px]">
           <div className="flex items-center gap-[12px]">
             <img src={logoSvg} alt="MedMAX" className="w-[48px] h-[48px]" />
             <span
@@ -1010,7 +1011,7 @@ function Footer() {
               MedMAX
             </span>
           </div>
-          <div className="flex items-center gap-[24px] text-[16px] font-medium leading-[24px] text-text-secondary">
+          <div className="flex flex-col sm:flex-row items-center gap-[12px] sm:gap-[24px] text-[14px] sm:text-[16px] font-medium leading-[24px] text-text-secondary">
             <a href="#" className="hover:text-dark transition-colors">Политика конфиденциальности</a>
             <a href="#" className="hover:text-dark transition-colors">Условия пользования</a>
           </div>
