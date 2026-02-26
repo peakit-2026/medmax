@@ -1,18 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   X,
-  User,
-  Calendar,
-  FileText,
-  Search,
-  CircleCheckBig,
-  Eye,
   Upload,
   Pencil,
   MessageCircle,
-  Calculator,
   ChevronLeft,
 } from 'lucide-react'
+import calculatorIcon from '../assets/icons/calculator.svg'
+import downloadIcon from '../assets/icon-download.svg'
+import personIcon from '../assets/icons/person.svg'
+import calendarIcon from '../assets/icons/calendar.svg'
+import documentIcon from '../assets/icons/document.svg'
+import checkmarkIcon from '../assets/icons/checkmark.svg'
+import eyeIcon from '../assets/icons/eye.svg'
 import { usePatientStore, selectComments, selectMedia } from '../store/patients'
 import { getDisplayStatus, shortenName } from '../types'
 import type { ChecklistItem, Comment, MediaFile, IolCalculation } from '../types'
@@ -703,24 +703,24 @@ function PatientDrawer({ patientId, onClose }: Props) {
                 <div className="flex flex-col shrink-0" style={{ gap: '8px' }}>
                   {/* Row 1: Пациент + Дата рождения */}
                   <div className="flex" style={{ gap: '8px' }}>
-                    <InfoCard icon={<User size={24} />} label="Пациент" value={shortenName(patient.full_name)} />
-                    <InfoCard icon={<Calendar size={24} />} label="Дата рождения" value={patient.birth_date} />
+                    <InfoCard icon={<img src={personIcon} width={24} height={24} alt="" />} label="Пациент" value={shortenName(patient.full_name)} />
+                    <InfoCard icon={<img src={calendarIcon} width={24} height={24} alt="" />} label="Дата рождения" value={patient.birth_date} />
                   </div>
                   {/* Row 2: СНИЛС + Полис ОМС */}
                   <div className="flex" style={{ gap: '8px' }}>
-                    <InfoCard icon={<FileText size={24} />} label="СНИЛС" value={patient.snils ?? '—'} />
-                    <InfoCard icon={<FileText size={24} />} label="Полис ОМС" value={patient.insurance_policy ?? '—'} />
+                    <InfoCard icon={<img src={documentIcon} width={24} height={24} alt="" />} label="СНИЛС" value={patient.snils ?? '—'} />
+                    <InfoCard icon={<img src={documentIcon} width={24} height={24} alt="" />} label="Полис ОМС" value={patient.insurance_policy ?? '—'} />
                   </div>
                   {/* Row 3: Диагноз + Статус */}
                   <div className="flex" style={{ gap: '8px' }}>
-                    <InfoCard icon={<Search size={24} />} label="Диагноз" value={patient.diagnosis_text} />
+                    <InfoCard icon={<img src={eyeIcon} width={24} height={24} alt="" />} label="Диагноз" value={patient.diagnosis_text} />
                     {/* Status card — custom with badge dot */}
                     <div
                       className="flex-1 border border-border rounded-[24px] overflow-clip flex items-start"
                       style={{ padding: '16px', gap: '16px' }}
                     >
                       <div className="shrink-0 w-[48px] h-[48px] bg-surface-secondary rounded-[16px] flex items-center justify-center">
-                        <CircleCheckBig size={24} />
+                        <img src={checkmarkIcon} width={24} height={24} alt="" />
                       </div>
                       <div className="flex flex-col min-w-0" style={{ gap: '4px' }}>
                         <span className="text-[16px] font-medium leading-[24px] text-text-secondary">Статус</span>
@@ -738,8 +738,8 @@ function PatientDrawer({ patientId, onClose }: Props) {
                   </div>
                   {/* Row 4: Тип операции + Хирург */}
                   <div className="flex" style={{ gap: '8px' }}>
-                    <InfoCard icon={<Eye size={24} />} label="Тип операции" value={patient.operation_type} />
-                    <InfoCard icon={<User size={24} />} label="Хирург" value="—" />
+                    <InfoCard icon={<img src={eyeIcon} width={24} height={24} alt="" />} label="Тип операции" value={patient.operation_type} />
+                    <InfoCard icon={<img src={personIcon} width={24} height={24} alt="" />} label="Хирург" value="—" />
                   </div>
                 </div>
 
@@ -1030,7 +1030,7 @@ function ChecklistRow({
             className="flex items-center overflow-clip rounded-full"
             style={{ padding: '8px', background: 'rgba(0, 122, 255, 0.12)' }}
           >
-            <Upload size={24} className="text-primary shrink-0" />
+            <img src={downloadIcon} width={24} height={24} alt="" className="shrink-0" />
             <span className="text-[16px] font-medium leading-[24px] text-primary" style={{ padding: '0 8px' }}>
               Загрузить файл
             </span>
@@ -1054,7 +1054,7 @@ function ChecklistRow({
           className="flex items-center overflow-clip rounded-full shrink-0"
           style={{ padding: '8px', background: 'rgba(0, 122, 255, 0.12)' }}
         >
-          <Calculator size={24} className="text-primary shrink-0" />
+          <img src={calculatorIcon} width={24} height={24} alt="" className="shrink-0" />
           <span className="text-[16px] font-medium leading-[24px] text-primary" style={{ padding: '0 8px' }}>
             Рассчитать ИОЛ
           </span>
