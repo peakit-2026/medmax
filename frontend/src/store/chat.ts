@@ -46,6 +46,11 @@ interface IncomingCallData {
 
 // ── Store interface ────────────────────────────────────────────────────
 
+interface ActiveCallData {
+  conversationId: string
+  roomId: string
+}
+
 interface ChatState {
   conversations: Conversation[]
   activeConversationId: string | null
@@ -54,6 +59,7 @@ interface ChatState {
   ws: WebSocket | null
   typingUsers: Record<string, string | null>
   incomingCall: IncomingCallData | null
+  activeCall: ActiveCallData | null
 
   connect: () => void
   disconnect: () => void
@@ -66,6 +72,7 @@ interface ChatState {
   markAsRead: (conversationId: string) => void
   sendCallStarted: (conversationId: string, roomId: string) => void
   sendCallEnded: (conversationId: string) => void
+  clearActiveCall: () => void
   dismissIncomingCall: () => void
 }
 
@@ -136,6 +143,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   ws: null,
   typingUsers: {},
   incomingCall: null,
+  activeCall: null,
 
   connect: () => {
     const token = localStorage.getItem('token')
@@ -250,7 +258,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           }
 
           case 'call_ended': {
-            set({ incomingCall: null })
+            set({ incomingCall: null, activeCall: null })
             break
           }
         }
@@ -260,7 +268,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
 
     ws.onclose = () => {
-      set({ ws: null })
+      set({ ws: null, incomingCall: null })
       // Reconnect after 3 seconds if token still exists
       const token = localStorage.getItem('token')
       if (token) {
@@ -387,6 +395,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const { ws } = get()
     if (!ws || ws.readyState !== WebSocket.OPEN) return
 
+    set({ activeCall: { conversationId, roomId } })
+
     ws.send(
       JSON.stringify({
         type: 'call_started',
@@ -400,12 +410,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const { ws } = get()
     if (!ws || ws.readyState !== WebSocket.OPEN) return
 
+    set({ activeCall: null })
+
     ws.send(
       JSON.stringify({
         type: 'call_ended',
         conversation_id: conversationId,
       })
     )
+  },
+
+  clearActiveCall: () => {
+    set({ activeCall: null })
   },
 
   dismissIncomingCall: () => {

@@ -3,8 +3,11 @@ import api from '../api/client'
 
 interface WebTransportState {
   isConnected: boolean
+  isReconnecting: boolean
+  hasCamera: boolean
   isMuted: boolean
   isCameraOff: boolean
+  hasRemoteVideo: boolean
   error: string | null
 }
 
@@ -32,14 +35,26 @@ export function useWebTransport(roomId: string) {
   const waitingKeyframeRef = useRef(true)
   const canvasCtxRef = useRef<CanvasRenderingContext2D | null>(null)
 
+  const reconnectAttemptRef = useRef(0)
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const maxReconnectAttempts = 3
+
   const [state, setState] = useState<WebTransportState>({
     isConnected: false,
+    isReconnecting: false,
+    hasCamera: false,
     isMuted: false,
     isCameraOff: false,
+    hasRemoteVideo: false,
     error: null,
   })
 
   const cleanup = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current)
+      reconnectTimerRef.current = null
+    }
+
     abortRef.current?.abort()
     abortRef.current = null
 
@@ -64,8 +79,9 @@ export function useWebTransport(roomId: string) {
     audioTimeRef.current = 0
     waitingKeyframeRef.current = true
     canvasCtxRef.current = null
+    reconnectAttemptRef.current = 0
 
-    setState((s) => ({ ...s, isConnected: false, error: null }))
+    setState((s) => ({ ...s, isConnected: false, isReconnecting: false, error: null }))
   }, [])
 
   const connect = useCallback(async () => {
@@ -90,10 +106,20 @@ export function useWebTransport(roomId: string) {
       ])
 
       transport.closed.then(() => {
-        setState((s) => ({ ...s, isConnected: false }))
+        if (reconnectAttemptRef.current < maxReconnectAttempts) {
+          reconnectAttemptRef.current++
+          const delay = Math.min(1000 * 2 ** (reconnectAttemptRef.current - 1), 4000)
+          setState((s) => ({ ...s, isConnected: false, isReconnecting: true }))
+          reconnectTimerRef.current = setTimeout(() => {
+            connect()
+          }, delay)
+        } else {
+          setState((s) => ({ ...s, isConnected: false, isReconnecting: false }))
+        }
       }).catch(() => {})
 
-      setState((s) => ({ ...s, isConnected: true, error: null }))
+      setState((s) => ({ ...s, isConnected: true, isReconnecting: false, error: null }))
+      reconnectAttemptRef.current = 0
 
       const abort = new AbortController()
       abortRef.current = abort
@@ -128,6 +154,7 @@ export function useWebTransport(roomId: string) {
         }
       }
       streamRef.current = stream
+      setState((s) => ({ ...s, hasCamera: hasVideo }))
 
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream
@@ -281,6 +308,7 @@ export function useWebTransport(roomId: string) {
 
       const audioCtx = new AudioContext({ sampleRate: 48000 })
       audioContextRef.current = audioCtx
+      audioCtx.resume().catch(() => {})
       audioTimeRef.current = audioCtx.currentTime
 
       const videoDecoder = new VideoDecoder({
@@ -297,6 +325,7 @@ export function useWebTransport(roomId: string) {
           }
           canvasCtxRef.current?.drawImage(frame, 0, 0)
           frame.close()
+          setState((s) => s.hasRemoteVideo ? s : { ...s, hasRemoteVideo: true })
         },
         error: (e) => {
           console.error('VideoDecoder error:', e)

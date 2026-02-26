@@ -17,11 +17,30 @@ import VideoCall from './components/VideoCall'
 import LandingPage from './pages/LandingPage'
 import NotFoundPage from './pages/NotFoundPage'
 
+const CALL_TIMEOUT_MS = 30_000
+
 function IncomingCallBanner() {
   const incomingCall = useChatStore((s) => s.incomingCall)
   const dismissIncomingCall = useChatStore((s) => s.dismissIncomingCall)
   const sendCallEnded = useChatStore((s) => s.sendCallEnded)
   const [accepted, setAccepted] = useState(false)
+
+  // Reset accepted when incomingCall is dismissed/cleared
+  useEffect(() => {
+    if (!incomingCall) {
+      setAccepted(false)
+    }
+  }, [incomingCall])
+
+  // Auto-dismiss incoming call after 30 seconds
+  useEffect(() => {
+    if (!incomingCall || accepted) return
+    const timer = setTimeout(() => {
+      sendCallEnded(incomingCall.conversation_id)
+      dismissIncomingCall()
+    }, CALL_TIMEOUT_MS)
+    return () => clearTimeout(timer)
+  }, [incomingCall, accepted, sendCallEnded, dismissIncomingCall])
 
   const handleAccept = useCallback(() => {
     setAccepted(true)

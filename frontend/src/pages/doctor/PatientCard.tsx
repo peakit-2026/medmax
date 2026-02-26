@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../../api/client'
 import StatusBadge from '../../components/StatusBadge'
 import { getDisplayStatus } from '../../types'
 import ChecklistItemRow from '../../components/ChecklistItemRow'
 import MediaGallery from '../../components/MediaGallery'
-import VideoCall from '../../components/VideoCall'
 import { usePatientStore } from '../../store/patients'
 
 function PatientCard() {
@@ -13,8 +12,6 @@ function PatientCard() {
   const patient = usePatientStore((s) => s.patients[id!])
   const fetchPatient = usePatientStore((s) => s.fetchPatient)
   const fetchPatients = usePatientStore((s) => s.fetchPatients)
-  const [showVideo, setShowVideo] = useState(false)
-
   useEffect(() => {
     fetchPatient(id!)
   }, [id])
@@ -47,21 +44,7 @@ function PatientCard() {
         >
           Скачать маршрутный лист
         </button>
-        <button
-          onClick={() => setShowVideo(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
-        >
-          Видеоконсультация
-        </button>
       </div>
-
-      {showVideo && (
-        <VideoCall
-          roomId={patient.id}
-          calleeName={patient.full_name}
-          onClose={() => setShowVideo(false)}
-        />
-      )}
 
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 max-w-lg">

@@ -561,6 +561,7 @@ function MessagesPage() {
   const sendMessageWithFiles = useChatStore((s) => s.sendMessageWithFiles)
   const sendCallStarted = useChatStore((s) => s.sendCallStarted)
   const sendCallEnded = useChatStore((s) => s.sendCallEnded)
+  const activeCall = useChatStore((s) => s.activeCall)
 
   const [showChat, setShowChat] = useState(false)
   const [showVideoCall, setShowVideoCall] = useState(false)
@@ -598,6 +599,14 @@ function MessagesPage() {
       }
     }
   }, [chatId, conversations, activeConversationId, selectConversation, loadMessages])
+
+  // Close VideoCall when remote party ends the call (activeCall cleared by store)
+  useEffect(() => {
+    if (!activeCall && showVideoCall) {
+      setShowVideoCall(false)
+      setCallRoomId(null)
+    }
+  }, [activeCall, showVideoCall])
 
   // Auto-scroll to bottom on new messages
   const activeMessages = activeConversationId ? messages[activeConversationId] ?? [] : []
@@ -662,12 +671,12 @@ function MessagesPage() {
   }, [])
 
   const handleStartCall = useCallback(() => {
-    if (!activeConversationId) return
+    if (!activeConversationId || showVideoCall || activeCall) return
     const roomId = crypto.randomUUID()
     setCallRoomId(roomId)
     sendCallStarted(activeConversationId, roomId)
     setShowVideoCall(true)
-  }, [activeConversationId, sendCallStarted])
+  }, [activeConversationId, showVideoCall, activeCall, sendCallStarted])
 
   const handleCallEnd = useCallback(() => {
     if (activeConversationId) {
@@ -867,6 +876,7 @@ function MessagesPage() {
                 {/* Call button */}
                 <button
                   onClick={handleStartCall}
+                  disabled={showVideoCall || !!activeCall}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -875,11 +885,12 @@ function MessagesPage() {
                     borderRadius: 16,
                     border: 'none',
                     background: 'rgba(0,122,255,0.12)',
-                    cursor: 'pointer',
+                    cursor: showVideoCall || activeCall ? 'default' : 'pointer',
                     color: '#007aff',
                     fontSize: 16,
                     fontWeight: 500,
                     fontFamily: 'var(--font-sans)',
+                    opacity: showVideoCall || activeCall ? 0.5 : 1,
                   }}
                 >
                   <img src={videoIcon} alt="" style={{
