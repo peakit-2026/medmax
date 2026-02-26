@@ -34,6 +34,7 @@ services:
       RUST_LOG: info
     networks:
       - internal
+      - external
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8080/api/health"]
       interval: 10s
